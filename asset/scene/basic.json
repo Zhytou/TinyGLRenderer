@@ -1,0 +1,71 @@
+{
+    "camera": {
+        "eye": [0, 5, 8],
+        "target": [0, 5, 0],
+        "up": [0, 1, 0],
+        "fov": 45.0,
+        "near": 1,
+        "far": 500,
+        "width": 800,
+        "height": 800,
+        "speed": 0.05
+    },
+    "lights": {
+        "directional": [
+                {
+                    "color": [1, 1, 1],
+                    "intensity": 2.0,
+                    "direction": [-1, -1, -1]
+                }
+            ],
+        "point": [
+        ]            
+    },
+    "models": [
+        {
+            "name": "sphere00",
+            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/sphere.obj",
+            "default_mat": {
+                "opacity": 0.5,
+                "albedo": [0.5, 0.5, 0.5],
+                "metallic": 0.0,
+                "roughness": 0.1
+            },
+            "transform": {
+                "translate": [-4, 5, 0]
+            }
+        },
+        {
+            "name": "sphere01",
+            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/sphere.obj",
+            "default_mat": {
+                "opacity": 0.5,
+                "albedo": [0.5, 0.5, 0.5],
+                "metallic": 0.0,
+                "roughness": 0.5
+            },
+            "transform": {
+                "translate": [0, 5, 0]
+            }
+        },
+        {
+            "name": "sphere00",
+            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/sphere.obj",
+            "default_mat": {
+                "opacity": 0.5,
+                "albedo": [0.5, 0.5, 0.5],
+                "metallic": 0.0,
+                "roughness": 0.9
+            },
+            "transform": {
+                "translate": [4, 5, 0]
+            }
+        }
+    ],
+    "skybox": {
+        "equirect": {
+            "base_dir": "/home/zhytou/tinyglrenderer/asset/skybox/equirect/tokyo",
+            "name": "tokyo.hdr"
+        }
+    }
+}
