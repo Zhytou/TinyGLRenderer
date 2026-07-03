@@ -31,6 +31,8 @@ void Renderer::setup(ResourceManager& manager) {
             {"deferred_geometry", "gbuffer"},
             {"deferred_shading", "hdr_screen"},
             {"forward_opaque", "hdr_screen"},
+            {"deferred_transparent_back", "gbuffer_b"},
+            {"deferred_transparent_front", "gbuffer_f"},
             {"forward_transparent", "hdr_screen_ss"},
             {"skybox_mapping", "hdr_screen"},
             {"postprocess_highlight", "highlight"},
@@ -52,6 +54,11 @@ void Renderer::setup(ResourceManager& manager) {
             {"gbuffer.normal", 9},
             {"gbuffer.mrao", 10},
             {"gbuffer.depth", 11},
+
+            {"gbuffer_b.normal", 8}, 
+            {"gbuffer_b.depth", 9},
+            {"gbuffer_f.normal", 10},
+            {"gbuffer_f.depth", 11},
 
             // 12~19: ibl textures and shadow textures
             {"skybox.cubemap", 12},
@@ -269,6 +276,50 @@ void Renderer::setup(ResourceManager& manager) {
                 },
             },
         };
+        m_passes["deferred_transparent_back"] = RenderPass{
+            .attachments = {
+                AttachmentDesc{
+                    .name   = "normal",
+                    .target = GL_COLOR,
+                    .type   = GL_TEXTURE_2D,
+                    .format = GL_RGBA32F,
+                    .slot   = GL_COLOR_ATTACHMENT0,
+                    .loadOp = LoadOp::LOAD_OP_CLEAR,
+                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                },
+                AttachmentDesc{
+                    .name   = "depth",
+                    .target = GL_DEPTH,
+                    .type   = GL_TEXTURE_2D,
+                    .format = GL_DEPTH_COMPONENT24,
+                    .slot   = GL_DEPTH_ATTACHMENT,
+                    .loadOp = LoadOp::LOAD_OP_CLEAR,
+                    .value  = {.depthStencil = {1.0f, 0}},
+                },
+            },
+        };
+        m_passes["deferred_transparent_front"] = RenderPass{
+            .attachments = {
+                AttachmentDesc{
+                    .name   = "normal",
+                    .target = GL_COLOR,
+                    .type   = GL_TEXTURE_2D,
+                    .format = GL_RGBA32F,
+                    .slot   = GL_COLOR_ATTACHMENT0, 
+                    .loadOp = LoadOp::LOAD_OP_CLEAR,
+                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                },
+                AttachmentDesc{
+                    .name   = "depth",
+                    .target = GL_DEPTH,
+                    .type   = GL_TEXTURE_2D,
+                    .format = GL_DEPTH_COMPONENT24,
+                    .slot   = GL_DEPTH_ATTACHMENT,
+                    .loadOp = LoadOp::LOAD_OP_CLEAR,
+                    .value  = {.depthStencil = {1.0f, 0}},
+                },
+            },
+        };
         m_passes["forward_transparent"] = RenderPass{
             .attachments = {
                 AttachmentDesc{
@@ -428,6 +479,8 @@ void Renderer::setup(ResourceManager& manager) {
         };
         m_states["shadow_mapping"] = PipelineState{
             .viewportDynamic  = GL_TRUE,
+            .cullEnable       = GL_TRUE,
+            .cullMode         = GL_BACK,
             .depthTestEnable  = GL_TRUE,
             .depthWriteEnable = GL_TRUE,
             .depthFunc        = GL_LESS,
@@ -437,6 +490,8 @@ void Renderer::setup(ResourceManager& manager) {
             .viewY            = 0,
             .viewW            = (GLsizei)m_setting.frameWidth,
             .viewH            = (GLsizei)m_setting.frameHeight,
+            .cullEnable       = GL_TRUE,
+            .cullMode         = GL_BACK,
             .depthTestEnable  = GL_TRUE,
             .depthWriteEnable = GL_TRUE,
             .depthFunc        = GL_LESS,
@@ -454,6 +509,30 @@ void Renderer::setup(ResourceManager& manager) {
             .viewY            = 0,
             .viewW            = (GLsizei)m_setting.frameWidth,
             .viewH            = (GLsizei)m_setting.frameHeight,
+            .cullEnable       = GL_TRUE,
+            .cullMode         = GL_BACK,
+            .depthTestEnable  = GL_TRUE,
+            .depthWriteEnable = GL_TRUE,
+            .depthFunc        = GL_LESS,
+        };
+        m_states["deferred_transparent_back"] = PipelineState{
+            .viewX            = 0,
+            .viewY            = 0,
+            .viewW            = (GLsizei)m_setting.frameWidth / 2,
+            .viewH            = (GLsizei)m_setting.frameHeight / 2,
+            .cullEnable       = GL_TRUE,
+            .cullMode         = GL_FRONT, // cull front face
+            .depthTestEnable  = GL_TRUE,
+            .depthWriteEnable = GL_TRUE,
+            .depthFunc        = GL_LESS,
+        };
+        m_states["deferred_transparent_front"] = PipelineState{
+            .viewX            = 0,
+            .viewY            = 0,
+            .viewW            = (GLsizei)m_setting.frameWidth / 2,
+            .viewH            = (GLsizei)m_setting.frameHeight / 2,
+            .cullEnable       = GL_TRUE,
+            .cullMode         = GL_BACK, // cull back face
             .depthTestEnable  = GL_TRUE,
             .depthWriteEnable = GL_TRUE,
             .depthFunc        = GL_LESS,
@@ -463,6 +542,8 @@ void Renderer::setup(ResourceManager& manager) {
             .viewY            = 0,
             .viewW            = (GLsizei)m_setting.frameWidth,
             .viewH            = (GLsizei)m_setting.frameHeight,
+            .cullEnable       = GL_TRUE,
+            .cullMode         = GL_BACK,
             .depthTestEnable  = GL_TRUE,
             .depthWriteEnable = GL_TRUE,
             .depthFunc        = GL_LESS,
@@ -527,6 +608,7 @@ void Renderer::setup(ResourceManager& manager) {
         m_shaders["deferred_geometry"]         = manager.loadShader("deferred_geometry", "../asset/shader/deferred_geometry.vert", "../asset/shader/deferred_geometry.frag");
         m_shaders["deferred_shading"]          = manager.loadShader("deferred_shading", "../asset/shader/deferred_shading.vert", "../asset/shader/deferred_shading.frag");
         m_shaders["forward_opaque"]            = manager.loadShader("forward_opaque", "../asset/shader/forward_opaque.vert", "../asset/shader/forward_opaque.frag");
+        m_shaders["deferred_transparent"]      = manager.loadShader("deferred_transparent", "../asset/shader/deferred_transparent.vert", "../asset/shader/deferred_transparent.frag");
         m_shaders["forward_transparent"]       = manager.loadShader("forward_transparent", "../asset/shader/forward_transparent.vert", "../asset/shader/forward_transparent.frag");
         m_shaders["skybox_mapping"]            = manager.loadShader("skybox", "../asset/shader/skybox.vert", "../asset/shader/skybox.frag");
         m_shaders["postprocess_highlight"]     = manager.loadShader("postprocess_highlight", "../asset/shader/postprocess_highlight.vert", "../asset/shader/postprocess_highlight.frag");
@@ -544,6 +626,8 @@ void Renderer::setup(ResourceManager& manager) {
         m_frames["ibl_brdf_lut"] = std::make_shared<FrameBuffer>(false, m_setting.brdfLUTSize, m_setting.brdfLUTSize);
         m_frames["shadow"]       = std::make_shared<FrameBuffer>(false, m_setting.shadowMapSize, m_setting.shadowMapSize);
         m_frames["gbuffer"]      = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight);
+        m_frames["gbuffer_b"]    = std::make_shared<FrameBuffer>(false, m_setting.frameWidth / 2, m_setting.frameHeight / 2);
+        m_frames["gbuffer_f"]    = std::make_shared<FrameBuffer>(false, m_setting.frameWidth / 2, m_setting.frameHeight / 2);
         m_frames["skybox"]       = std::make_shared<FrameBuffer>(false, m_setting.skyboxSize, m_setting.skyboxSize);
         m_frames["hdr_screen"]   = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight); // hdr_screen is the temporary frame buffer for shading pass, so that later can use it for postprocess(convert hdr into sdr/ldr)
         m_frames["hdr_screen_ss"]   = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight); 
@@ -665,7 +749,7 @@ void Renderer::prepare(const Scene& scene) {
     }
 
     // 2. Precalculate environment map
-    if (0) {
+    {
     // if (cubemap != nullptr || equirect != nullptr) {
         // 2.1 Precalculate irradiance map
         {
@@ -876,24 +960,50 @@ void Renderer::render(const Scene& scene) {
     // TODO: screen space reflection
     if (m_setting.ssr) {}
 
-    if (m_setting.ssrefr) {
+    if (m_setting.dssr) {
         scene.getRenderQueue(items, false); // get transparent objects
+
+        {
+            m_states["deferred_transparent_back"].apply();
+            m_shaders["deferred_transparent"]->use();
+            m_passes["deferred_transparent_back"].begin(m_frames["gbuffer_b"]);
+            for (const auto& item : items) {            
+                m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
+                draw(item, {"normal"});
+            }
+            m_passes["deferred_transparent_back"].end();
+        }
+
+        {
+            m_states["deferred_transparent_front"].apply();
+            m_shaders["deferred_transparent"]->use();
+            m_passes["deferred_transparent_front"].begin(m_frames["gbuffer_f"]);
+            for (const auto& item : items) {            
+                m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
+                draw(item, {"normal"});
+            }
+            m_passes["deferred_transparent_front"].end();
+        }
 
         {
             m_frames["hdr_screen_ss"]->copy(*m_frames["hdr_screen"], GL_COLOR_BUFFER_BIT); // copy hdr_screen.color
             m_frames["hdr_screen_ss"]->copy(*m_frames["hdr_screen"], GL_DEPTH_BUFFER_BIT);
         }
         
-        m_states["forward_transparent"].apply();
-        m_shaders["forward_transparent"]->use();
-        m_shaders["forward_transparent"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
-        m_passes["forward_transparent"].begin(m_frames["hdr_screen_ss"]);
-        for (const auto& item : items) {            
-            m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
-            draw(item, {"albedo", "normal", "mrao", "shadow", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut", "hdr_screen.color", "hdr_screen.depth"});
+        {
+            m_states["forward_transparent"].apply();
+            m_shaders["forward_transparent"]->use();
+            m_shaders["forward_transparent"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
+            m_passes["forward_transparent"].begin(m_frames["hdr_screen_ss"]);
+            for (const auto& item : items) {
+                const auto& [xyz1, xyz2] = item.mesh->getBoundingBox();
+                m_shaders["forward_transparent"]->setUniformValue("uCenter", (xyz1 + xyz2) / 2.0f);
+                m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
+                draw(item, {"albedo", "normal", "mrao", "gbuffer_b.normal", "gbuffer_b.depth", "gbuffer_f.normal", "gbuffer_f.depth", "shadow", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut", "hdr_screen.color", "hdr_screen.depth", "skybox.cubemap"});
+            }
+            m_passes["forward_transparent"].end();
         }
-        m_passes["forward_transparent"].end();
-
+        
         {
             m_frames["hdr_screen"]->copy(*m_frames["hdr_screen_ss"], GL_COLOR_BUFFER_BIT); // copy hdr_screen_ss.color
             m_frames["hdr_screen"]->copy(*m_frames["hdr_screen_ss"], GL_DEPTH_BUFFER_BIT);
@@ -1037,7 +1147,7 @@ void Renderer::render(const Scene& scene) {
         m_states["postprocess_final"].view(m_setting.x, m_setting.y, m_setting.width, m_setting.height);
         m_shaders["postprocess_final"]->use();
         m_passes["postprocess_final"].begin(m_frames["screen"]);
-        draw(layout, {"hdr_screen.color", "highlight", "blur_up", "blur_down", "lensflare", "dirtmask"}, count);
+        draw(layout, {"hdr_screen.color", "highlight", "blur_up", "blur_down", "lensflare", "dirtmask", "gbuffer_f.normal", "gbuffer_f.depth", "gbuffer_b.normal", "gbuffer_b.depth"}, count);
         m_passes["postprocess_final"].end();
     }
 }
