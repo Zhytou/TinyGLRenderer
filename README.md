@@ -1,5 +1,7 @@
 # TinyGLRenderer
 
+[![wakatime](https://wakatime.com/badge/github/Zhytou/tinyrenderer.svg)](https://wakatime.com/badge/github/Zhytou/tinyrenderer)
+
 A lightweight, modern OpenGL 4.5 PBR renderer built with C++17, featuring dual forward/deferred pipelines, IBL, shadow mapping, and built-in Dear ImGui editor.
 
 ![ibl](./result/multi-sphere-9-ibl-direct.png)
