@@ -24,24 +24,14 @@ layout(std140, binding = 1) uniform ModelBlock {
     mat4 uNormalMatrix;
 };
 
-uniform vec3 uCenter;
-
-layout(location = 0) out vec3 oFragPos;
-layout(location = 1) out vec3 oFragNormal;
-layout(location = 2) out vec3 oFragTangent;
-layout(location = 3) out vec2 oFragUV;
-layout(location = 4) out vec3 oFragView; // view direction from vertex to camera
-layout(location = 5) out vec2 oFragScreenUV;
-layout(location = 6) out vec3 oFragCenter;
+layout(location = 0) out vec3 oFragNormal;
+layout(location = 1) out vec3 oFragTangent;
+layout(location = 2) out vec2 oFragUV;
 
 void main() {
-    gl_Position = uProjMatrix * uViewMatrix * uModelMatrix * vec4(iVertPos, 1.0);
-
-    oFragCenter = (uModelMatrix * vec4(uCenter, 1.0)).xyz;
-    oFragPos = (uModelMatrix * vec4(iVertPos, 1.0)).xyz;
     oFragNormal = (uNormalMatrix * vec4(iVertNormal, 0.0)).xyz;
     oFragTangent = (uModelMatrix * vec4(iVertTangent, 0.0)).xyz;
     oFragUV = iVertUV;
-    oFragView = uCameraPos - oFragPos; 
-    oFragScreenUV = gl_Position.xy / gl_Position.w;
+
+    gl_Position = uProjMatrix * uViewMatrix * uModelMatrix * vec4(iVertPos, 1.0);
 }
