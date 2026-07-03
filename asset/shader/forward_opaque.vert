@@ -35,7 +35,7 @@ void main() {
     oFragNormal = (uNormalMatrix * vec4(iVertNormal, 0.0)).xyz;
     oFragTangent = (uModelMatrix * vec4(iVertTangent, 0.0)).xyz;
     oFragUV = iVertUV;
-    oFragView = uCameraPos -iVertPos; // vertex -> camera
+    oFragView = uCameraPos - oFragPos; // vertex -> camera
 
     gl_Position = uProjMatrix * uViewMatrix * uModelMatrix * vec4(iVertPos, 1.0);
 }
