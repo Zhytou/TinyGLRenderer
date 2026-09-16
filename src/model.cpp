@@ -1,5 +1,6 @@
 #include "model.hpp"
 
+#include <format>
 #include <iostream>
 #include <stdexcept>
 #include <unordered_map>
@@ -45,7 +46,7 @@ void Model::getRenderQueue(std::vector<RenderItem>& queue, bool opaque) const {
 
     for (auto& sm : m_mesh->getSubMeshes()) {
         auto material = sm.matid != -1 ? m_materials[sm.matid] : m_material;
-        if (material == nullptr) { throw std::runtime_error("Model::getRenderQueue}: Invalid material for submesh!"); }
+        if (material == nullptr) { throw std::runtime_error(std::format("Model::getRenderQueue: Invalid material for {} submesh {}!", m_name, sm.matid)); }
         if (material->isOpaque() != opaque) { continue; }
         queue.emplace_back(
             RenderItem{
