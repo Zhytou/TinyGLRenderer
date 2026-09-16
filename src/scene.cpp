@@ -62,7 +62,7 @@ void Scene::initialize(const std::string& json, ResourceManager& manager) {
             auto& modelDoc = doc["models"][i];
             // model base dir and name required
             fs::path objPath      = modelDoc["obj_path"].GetString();
-            fs::path mtlDir       = modelDoc.HasMember("mtl_dir") ? modelDoc["mtl_dir"].GetString() : objPath.parent_path();
+            fs::path mtlDir       = modelDoc.HasMember("mtl_dir") ? modelDoc["mtl_dir"].GetString() : objPath.parent_path() / "";
             std::string modelName = modelDoc.HasMember("name") ? modelDoc["name"].GetString() : objPath.stem().string();
             m_models.emplace_back(manager.loadModel(modelName, objPath, mtlDir));
 
