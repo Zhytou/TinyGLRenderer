@@ -175,7 +175,7 @@ void Renderer::setup(ResourceManager& manager) {
                     .format = GL_RGBA8,
                     .slot   = GL_COLOR_ATTACHMENT1,
                     .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
                 },
                 AttachmentDesc{
                     .name   = "mrao",
@@ -215,7 +215,7 @@ void Renderer::setup(ResourceManager& manager) {
                     .format = GL_RGBA32F,
                     .slot   = GL_COLOR_ATTACHMENT1,
                     .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
                 },
                 AttachmentDesc{
                     .name   = "metallic_roughness",
@@ -254,7 +254,7 @@ void Renderer::setup(ResourceManager& manager) {
                     .format = GL_RGBA32F,
                     .slot   = GL_COLOR_ATTACHMENT1,
                     .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
                 },
                 AttachmentDesc{
                     .name   = "metallic_roughness",
@@ -285,7 +285,7 @@ void Renderer::setup(ResourceManager& manager) {
                     .format = GL_RGBA32F,
                     .slot   = GL_COLOR_ATTACHMENT0,
                     .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
                 },
                 AttachmentDesc{
                     .name   = "depth",
@@ -307,7 +307,7 @@ void Renderer::setup(ResourceManager& manager) {
                     .format = GL_RGBA32F,
                     .slot   = GL_COLOR_ATTACHMENT0, 
                     .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
                 },
                 AttachmentDesc{
                     .name   = "depth",
@@ -749,7 +749,7 @@ void Renderer::prepare(const Scene& scene) {
     }
 
     // 2. Precalculate environment map
-    {
+    if (0) {
     // if (cubemap != nullptr || equirect != nullptr) {
         // 2.1 Precalculate irradiance map
         {
