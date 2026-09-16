@@ -1,0 +1,46 @@
+{
+    "camera": {
+        "eye": [0, 5, 7],
+        "target": [0, 5, 0],
+        "up": [0, 1, 0],
+        "fov": 45.0,
+        "near": 1,
+        "far": 30,
+        "width": 800,
+        "height": 800,
+        "speed": 0.05
+    },
+    "lights": {
+        "directional": [
+                {
+                    "color": [1, 1, 1],
+                    "intensity": 2.0,
+                    "direction": [-1, -1, -1]
+                }
+            ],
+        "point": [
+        ]            
+    },
+    "models": [
+        {
+            "name": "bunny",
+            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/bunny.obj",
+            "default_mat": {
+                "opacity": 0.5,
+                "albedo": [0.5, 0.5, 0.5],
+                "metallic": 0.0,
+                "roughness": 0.9
+            },
+            "transform": {
+                "translate": [0, 5, 0],
+                "scale": [10, 10, 10]
+            }
+        }
+    ],
+    "skybox": {
+        "equirect": {
+            "base_dir": "/home/zhytou/tinyglrenderer/asset/skybox/equirect/tokyo",
+            "name": "tokyo.hdr"
+        }
+    }
+}

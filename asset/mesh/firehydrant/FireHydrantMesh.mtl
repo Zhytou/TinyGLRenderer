@@ -1,3 +1,4 @@
+mtllib FireHydrantMesh.mtl
 newmtl fire_hydrant
 d 1
 map_Kd ../../material/firehydrant/albedo.png

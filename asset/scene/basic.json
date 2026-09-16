@@ -5,7 +5,7 @@
         "up": [0, 1, 0],
         "fov": 45.0,
         "near": 1,
-        "far": 500,
+        "far": 20,
         "width": 800,
         "height": 800,
         "speed": 0.05
@@ -49,7 +49,7 @@
             }
         },
         {
-            "name": "sphere00",
+            "name": "sphere02",
             "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/sphere.obj",
             "default_mat": {
                 "opacity": 0.5,

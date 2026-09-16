@@ -24,7 +24,7 @@
     "models": [
         {
             "name": "gun",
-            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/gun.obj",
+            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/gun/gun.obj",
             "transform": {
             }
         }

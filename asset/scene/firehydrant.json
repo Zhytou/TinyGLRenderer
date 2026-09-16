@@ -29,7 +29,7 @@
     "models": [
         {
             "name": "firehydrant",
-            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/firehydrant.obj",
+            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/firehydrant/firehydrant.obj",
             "transform": {
             }
         },
