@@ -23,7 +23,7 @@
     },
     "models": [
         {
-            "name": "bunny",
+            "name": "object",
             "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/bunny.obj",
             "default_mat": {
                 "opacity": 0.5,
