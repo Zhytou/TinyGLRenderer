@@ -6,7 +6,7 @@ A lightweight, modern OpenGL 4.5 PBR renderer built with C++17, featuring dual f
 
 ![ibl](./result/multi-sphere-9-ibl-direct.png)
 
-![transparent-sphere](./result/transparent-sphere.png)
+![transparent-bunny](./result/transparent-bunny.png)
 
 ![lenslfare-dirtmask](./result/tokyo-lensflare.png)
 
