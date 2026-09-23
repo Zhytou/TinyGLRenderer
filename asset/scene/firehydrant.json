@@ -1,11 +1,11 @@
 {
     "camera": {
-        "eye": [3, 0.5, 1],
-        "target": [0, 0.5, 0],
+        "eye": [3, 5, 10],
+        "target": [0, 0.1, 0],
         "up": [0, 1, 0],
         "fov": 45.0,
         "near": 0.1,
-        "far": 10,
+        "far": 30,
         "width": 800,
         "height": 800,
         "speed": 0.05
@@ -37,9 +37,9 @@
             "name": "floor",
             "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/floor.obj",
             "default_mat": {
-                "albedo_map": "/home/zhytou/tinyglrenderer/asset/material/plastic/albedo.png",
-                "metallic": 0.2,
-                "roughness": 0.8
+                "albedo": [0.8, 0.8, 0.8],
+                "metallic": 0,
+                "roughness": 1.0
             },
             "transform": {
                 "scale": [1.7, 1, 1.7]
