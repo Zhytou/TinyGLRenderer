@@ -13,7 +13,7 @@ struct RendererSetting {
     bool dirtmask  = false;  // dirtmask enabled or not
     bool ssao      = false; // screen space ambient occlusion enabled or not
     bool ssr       = false; // screen space reflection enabled or not
-    bool dssr      = true;  // dual screen space refraction enabled or not
+    bool dssr      = false;  // dual screen space refraction enabled or not
     bool taa       = false; // temporal anti aliasing enabled or not
 
     int x                  = 0;
