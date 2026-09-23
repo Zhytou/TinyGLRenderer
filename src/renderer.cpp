@@ -749,8 +749,7 @@ void Renderer::prepare(const Scene& scene) {
     }
 
     // 2. Precalculate environment map
-    if (0) {
-    // if (cubemap != nullptr || equirect != nullptr) {
+    if (cubemap != nullptr || equirect != nullptr) {
         // 2.1 Precalculate irradiance map
         {
             m_states["ibl_irradiance"].apply();
