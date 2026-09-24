@@ -209,24 +209,6 @@ void Renderer::setup(ResourceManager& manager) {
                     .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
                 },
                 AttachmentDesc{
-                    .name   = "normal",
-                    .target = GL_COLOR,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_RGBA32F,
-                    .slot   = GL_COLOR_ATTACHMENT1,
-                    .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
-                },
-                AttachmentDesc{
-                    .name   = "metallic_roughness",
-                    .target = GL_COLOR,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_RGBA32F,
-                    .slot   = GL_COLOR_ATTACHMENT2,
-                    .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
-                },
-                AttachmentDesc{
                     .name   = "depth",
                     .target = GL_DEPTH,
                     .type   = GL_TEXTURE_2D,
@@ -244,24 +226,6 @@ void Renderer::setup(ResourceManager& manager) {
                     .type   = GL_TEXTURE_2D,
                     .format = GL_RGBA32F,
                     .slot   = GL_COLOR_ATTACHMENT0,
-                    .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
-                },
-                AttachmentDesc{
-                    .name   = "normal",
-                    .target = GL_COLOR,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_RGBA32F,
-                    .slot   = GL_COLOR_ATTACHMENT1,
-                    .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
-                },
-                AttachmentDesc{
-                    .name   = "metallic_roughness",
-                    .target = GL_COLOR,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_RGBA32F,
-                    .slot   = GL_COLOR_ATTACHMENT2,
                     .loadOp = LoadOp::LOAD_OP_CLEAR,
                     .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
                 },
@@ -919,9 +883,6 @@ void Renderer::render(const Scene& scene) {
             m_passes["deferred_geometry"].end();
         }
 
-        // ! WARNING: Copy depth buffer to screen framebuffer, otherwise depth test will fail for subsequent passes that bind screen framebuffer, since gbuffer's depth buffer is not shared with screen framebuffer.(e.g., skybox will fail if copy is commented) This is a workaround for the fact that OpenGL does not support framebuffer inheritance and subpasses like Vulkan, which allow multiple passes to share the same depth attachment without copying.
-        m_frames["hdr_screen"]->copy(*m_frames["gbuffer"], GL_DEPTH_BUFFER_BIT);
-
         {
             GLsizei count = ResourceManager::getCount("quad");
             auto& layout  = ResourceManager::getLayout("quad");
@@ -930,9 +891,12 @@ void Renderer::render(const Scene& scene) {
             m_shaders["deferred_shading"]->use();
             m_shaders["deferred_shading"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
             m_passes["deferred_shading"].begin(m_frames["hdr_screen"]);
-            draw(layout, {"gbuffer.albedo", "gbuffer.normal", "gbuffer.mrao", "shadow", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut"}, count);
+            draw(layout, {"gbuffer.albedo", "gbuffer.normal", "gbuffer.mrao", "gbuffer.depth", "shadow", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut"}, count);
             m_passes["deferred_shading"].end();
         }
+
+        // ! WARNING: Copy depth buffer to screen framebuffer, otherwise depth test will fail for subsequent passes that bind screen framebuffer, since gbuffer's depth buffer is not shared with screen framebuffer.(e.g., skybox will fail if copy is commented) This is a workaround for the fact that OpenGL does not support framebuffer inheritance and subpasses like Vulkan, which allow multiple passes to share the same depth attachment without copying.
+        m_frames["hdr_screen"]->copy(*m_frames["gbuffer"], GL_DEPTH_BUFFER_BIT);
     } else {
         m_states["forward_opaque"].apply();
         m_shaders["forward_opaque"]->use();
