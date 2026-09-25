@@ -83,39 +83,20 @@ bool FrameBuffer::validate() const {
 
 void FrameBuffer::bind() const { glBindFramebuffer(GL_FRAMEBUFFER, m_id); }
 
-void FrameBuffer::attach(GLenum slot, const std::shared_ptr<Texture>& texture, GLint level) {
-    if (m_id == 0) { throw std::runtime_error("FrameBuffer::attach: framebuffer not created"); }
-    m_attachments[slot] = texture;
-
-    // Attach a 2D texture level to a framebuffer
-    //
-    // ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
-    // │                     glFramebufferTexture2D vs glNamedFramebufferTexture                      │
-    // ├───────────────────────────────────────────────┬──────────────────────────────────────────────┤
-    // │              glFramebufferTexture2D           │              glNamedFramebufferTexture       │
-    // ├───────────────────────────────────────────────┼──────────────────────────────────────────────┤
-    // │ • Requires currently BOUND framebuffer        │ • Directly specifies framebuffer ID          │
-    // │ • Changes global framebuffer binding state    │ • No binding required (DSA style)            │
-    // │ • Must specify texture target                 │ • No texture target needed                   │
-    // │   (GL_TEXTURE_2D, GL_TEXTURE_CUBE_MAP_POS_X)  │   (inferred from texture object)            │
-    // │ • Need separate glBindFramebuffer call        │ • One call, direct state access              │
-    // │ • Traditional API (OpenGL 3.0+)               │ • Modern API (OpenGL 4.5+ / ARB_dsa)         │
-    // │ • Error prone (forget to bind)                │ • Safer (explicit framebuffer ID)            │
-    // └───────────────────────────────────────────────┴──────────────────────────────────────────────┘
-    //
-    // Key insight:  glFramebufferTexture2D   = "bind then attach" (state-dependent)
-    //               glNamedFramebufferTexture = "attach directly" (stateless, explicit)
-    glNamedFramebufferTexture(m_id, slot, texture->getID(), level);
-}
-
 void FrameBuffer::attach(GLenum slot, const std::shared_ptr<Texture>& texture, GLint level, GLint layer) {
     if (m_id == 0) { throw std::runtime_error("FrameBuffer::attach: framebuffer not created"); }
     m_attachments[slot] = texture;
 
-    if (texture->getTarget() != GL_TEXTURE_CUBE_MAP && texture->getTarget() != GL_TEXTURE_2D_ARRAY && texture->getTarget() != GL_TEXTURE_3D) { throw std::runtime_error("FrameBuffer::attach: attachment target not supported"); }
-
-    // Attach a 2D texture level to a framebuffer
-    glNamedFramebufferTextureLayer(m_id, slot, texture->getID(), level, layer);
+    if (texture->getTarget() == GL_TEXTURE_2D) {
+        // Attach a 2D texture level to a framebuffer
+        glNamedFramebufferTexture(m_id, slot, texture->getID(), level);
+    } else if (texture->getTarget() == GL_TEXTURE_CUBE_MAP || texture->getTarget() == GL_TEXTURE_2D_ARRAY || texture->getTarget() == GL_TEXTURE_3D) {
+        // Attach a cube map texture level to a framebuffer
+        glNamedFramebufferTextureLayer(m_id, slot, texture->getID(), level, layer);
+    } else {
+        throw std::runtime_error("FrameBuffer::attach: attachment target not supported");
+    }
+    
 }
 
 void FrameBuffer::finalize() {

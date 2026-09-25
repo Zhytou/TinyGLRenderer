@@ -38,13 +38,7 @@ class FrameBuffer {
     // @param slot The attachment slot to bind the texture to.
     // @param texture The attachment(namely texture) to bind.
     // @param level The mip level to bind.
-    void attach(GLenum slot, const std::shared_ptr<Texture>& texture, GLint level = 0);
-    // Attach a texture layer to the framebuffer.
-    // @param slot The attachment slot to bind the texture to.
-    // @param texture The attachment(namely texture) to bind.
-    // @param level The mip level to bind.
-    // @param layer The layer to bind to.
-    void attach(GLenum slot, const std::shared_ptr<Texture>& texture, GLint level, GLint layer);
+    void attach(GLenum slot, const std::shared_ptr<Texture>& texture, GLint level = 0, GLint layer = 0);
     // Finalize the drawable attachments settings of the framebuffer.
     void finalize();
     // Clear the color attachment.
