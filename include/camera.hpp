@@ -56,11 +56,17 @@ class Camera {
     float getSpeed() const { return m_speed; }
     int getWidth() const { return m_width; }
     int getHeight() const { return m_height; }
+    float getFov() const { return m_fov; }
+    float getNear() const { return m_near; }
+    float getFar() const { return m_far; }
+    float getAspect() const { return m_aspect; }
     float getDistance(const glm::vec3& position) const { return glm::distance(m_eye, position); }
     const glm::vec3& getEye() const { return m_eye; }
     const glm::vec3& getTarget() const { return m_target; }
     const glm::mat4& getViewMatrix() const { return m_cameraBlock.viewMatrix; }
+    const glm::mat4& getInvViewMatrix() const { return m_cameraBlock.invViewMatrix; }
     const glm::mat4& getProjMatrix() const { return m_cameraBlock.projMatrix; }
+    const glm::mat4& getInvProjMatrix() const { return m_cameraBlock.invProjMatrix; }
     const CameraBlock& getCameraBlock() const { return m_cameraBlock; }
 
     void setSpeed(float speed) {
