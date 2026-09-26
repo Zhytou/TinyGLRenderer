@@ -93,7 +93,7 @@ Texture::Texture(GLsizei width, GLsizei height, GLsizei depth, GLenum target, GL
       m_target(target),
       m_mipLevels(mipLevels),
       m_internalFormat(internalFormat) {
-    if (width == 0 || height == 0 || depth == 0 || mipLevels > 10 || width < (1 << (mipLevels - 1)) || height < (1 << (mipLevels - 1)) || depth < (1 << (mipLevels - 1))) { throw std::runtime_error(std::format("Texture::Texture: Invalid Texture size {}x{}x{} for mip level {}", width, height, depth, mipLevels)); }
+    if (width == 0 || height == 0 || depth == 0 || mipLevels > 10 || width < (1 << (mipLevels - 1)) || height < (1 << (mipLevels - 1))) { throw std::runtime_error(std::format("Texture::Texture: Invalid Texture size {}x{}x{} for mip level {}", width, height, depth, mipLevels)); }
 
     glCreateTextures(m_target, 1, &m_id);
 
