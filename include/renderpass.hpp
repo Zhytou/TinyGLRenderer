@@ -28,6 +28,7 @@ struct AttachmentDesc {
     GLenum type       = GL_NONE;  // storage type, could be texture/renderbuffer for off-screen rendering, or none for on-screen rendering (e.g., GL_TEXTURE_2D/GL_TEXTURE_CUBE_MAP/GL_RENDERBUFFER/GL_NONE)
     GLenum format     = GL_NONE;  // internal format (e.g., GL_RGBA8/GL_RGB3/GL_DEPTH_COMPONENT24/GL_STENCIL_INDEX8/GL_NONE)
     GLenum slot       = GL_NONE;  // attachment slot for off-screen rendering and on-screen rendering(e.g., GL_COLOR_ATTACHMENT0~GL_COLOR_ATTACHMENT15/GL_FRONT/GL_BACK/GL_DEPTH_ATTACHMENT/GL_STENCIL_ATTACHMENT)
+    GLsizei layers    = 1;        // number of layers for texture attachment for cube map
     GLsizei mipLevels = 1;        // number of mip levels for texture attachment
     LoadOp loadOp     = LoadOp::LOAD_OP_DONT_CARE;
     StoreOp storeOp   = StoreOp::STORE_OP_DONT_CARE;
