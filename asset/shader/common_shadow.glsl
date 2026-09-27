@@ -12,14 +12,19 @@ vec3 Pos_toLightSpaceUVD(mat4 lightViewProjMatrix, vec3 worldPos) {
 }
 
 // Basic shadow mapping
-float SM(sampler2D shadowMap, vec2 uv, float depth) {
-    const float bias = 0.05;
+float SM(sampler2D shadowMap, vec2 uv, float depth, float bias) {
     float refDepth = texture(shadowMap, uv).x; // reference depth value
     return (depth - bias < refDepth) ? 1.0 : 0.0; // visibility
 }
 
+// Cascaded shadow mapping
+float CSM(sampler2DArray cascadedShadowMap, vec3 uvd, float depth, float bias) {
+    float refDepth = texture(cascadedShadowMap, uvd).x; // reference depth value
+    return (depth - bias < refDepth) ? 1.0 : 0.0; // visibility
+}
+
 // Percentage closer filtering
-float PCF(sampler2D shadowMap,vec2 uv, float z, float range) {
+float PCF(sampler2D shadowMap,vec2 uv, float depth, float range, float bias) {
     const int numSamples = 32;
     const int numRings = 4;
 
@@ -27,35 +32,34 @@ float PCF(sampler2D shadowMap,vec2 uv, float z, float range) {
     for (int i = 0; i < numSamples; i++) {
         vec2 x = PoissonSample(i, uv, numSamples, numRings);
         vec2 offset = x * range;
-        visibility += SM(shadowMap, uv + offset, z);
+        visibility += SM(shadowMap, uv + offset, depth, bias);
     }
 
     return visibility / numSamples;
 }
 
 // Percentage closer soft shadow
-float PCCS(sampler2D shadowMap,vec2 uv, float z, float range) {
+float PCCS(sampler2D shadowMap,vec2 uv, float depth, float range, float bias) {
     const int numSamples = 32;
     const int numRings = 4;
     
     // average depth of blockers
-    float d = 0.0;
+    float avgRefDepth = 0.0;
     for (int i = 0; i < numSamples; i++) {
         vec2 x = PoissonSample(i, uv, numSamples, numRings);
         vec2 offset = x * range;
-        d += texture(shadowMap, uv + offset).r;
+        avgRefDepth += texture(shadowMap, uv + offset).r;
     }
-    d /= numSamples;
+    avgRefDepth /= numSamples;
 
     // no shadow, just return 1.0
-    const float bias = 0.005;
-    if (z - bias < d) {
+    if (depth - bias < avgRefDepth) {
         return 1.0;
     }
 
     const float lightSize = 0.02; // light size, control soft shadow range
-    float penumbraSize = lightSize * (z - d) / d; // penumbra size
-    return PCF(shadowMap, uv, z, penumbraSize);
+    float penumbraSize = lightSize * (depth - avgRefDepth) / avgRefDepth; // penumbra size
+    return PCF(shadowMap, uv, depth, penumbraSize, bias);
 }
 
 #endif
