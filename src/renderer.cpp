@@ -24,18 +24,24 @@ void Renderer::setup(ResourceManager& manager) {
     {
         m_pass2FrameNames = {
             {"skybox_equirect2cubemap", "skybox"},
+            {"skybox_mapping", "hdr_screen"},
             {"ibl_irradiance", "ibl_diffuse"},
             {"ibl_prefiltered", "ibl_specular"},
             {"ibl_brdf_lut", "ibl_brdf_lut"},
+
             {"atlas_shadow_mapping", "atlas_shadow_map"},
             {"cascaded_shadow_mapping", "cascaded_shadow_map"},
+            
             {"deferred_geometry", "gbuffer"},
+            {"deferred_geometry", "gbuffer_b"}, // transparent back
+            {"deferred_geometry", "gbuffer_f"}, // transparent front
             {"deferred_shading", "hdr_screen"},
-            {"forward_opaque", "hdr_screen"},
-            {"deferred_transparent_back", "gbuffer_b"},
-            {"deferred_transparent_front", "gbuffer_f"},
-            {"forward_transparent", "hdr_screen_ss"},
-            {"skybox_mapping", "hdr_screen"},
+            {"forward_rendering", "hdr_screen"},
+            {"forward_rendering", "hdr_screen_t"},
+            
+            {"screenspace_reflection", "hdr_screen_ss"},
+            {"screenspace_dual_refraction", "hdr_screen_ss"},
+            
             {"postprocess_highlight", "highlight"},
             {"postprocess_kawase_down", "blur_down"},
             {"postprocess_kawase_up", "blur_up"},
@@ -56,9 +62,14 @@ void Renderer::setup(ResourceManager& manager) {
             {"gbuffer.mrao", 10},
             {"gbuffer.depth", 11},
 
-            {"gbuffer_b.normal", 8}, 
-            {"gbuffer_b.depth", 9},
-            {"gbuffer_f.normal", 10},
+            {"gbuffer_b.albedo", -1},
+            {"gbuffer_b.normal", 6},  // only need back normal and depth for dssr
+            {"gbuffer_b.mrao", -1},
+            {"gbuffer_b.depth", 7},
+
+            {"gbuffer_f.abeldo", 8},
+            {"gbuffer_f.normal", 9},
+            {"gbuffer_f.mrao", 10},
             {"gbuffer_f.depth", 11},
 
             // 12~19: ibl textures and shadow textures
@@ -76,7 +87,9 @@ void Renderer::setup(ResourceManager& manager) {
             {"hdr_screen.normal", 21},
             {"hdr_screen.metallic_roughness", 22},
             {"hdr_screen.depth", 23},
-            {"hdr_screen_ss.color", -1},
+            {"hdr_screen_t.color", 24}, // used for transparent objects forward rendering results
+            {"hdr_screen_t.depth", -1},
+            {"hdr_screen_ss.color", -1}, // used for ssr and dssr result
             {"hdr_screen_ss.depth", -1},
             
             // 24~31: postprocess textures
@@ -103,6 +116,26 @@ void Renderer::setup(ResourceManager& manager) {
                     .slot   = GL_COLOR_ATTACHMENT0,
                     .loadOp = LoadOp::LOAD_OP_CLEAR,
                     .value  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+                },
+            },
+        };
+        m_passes["skybox_mapping"] = RenderPass{
+            .attachments = {
+                AttachmentDesc{
+                    .name   = "color",
+                    .target = GL_COLOR,
+                    .type   = GL_TEXTURE_2D,
+                    .format = GL_RGBA32F,
+                    .slot   = GL_COLOR_ATTACHMENT0,
+                    .loadOp = LoadOp::LOAD_OP_DONT_CARE,
+                },
+                AttachmentDesc{
+                    .name   = "depth",
+                    .target = GL_DEPTH,
+                    .type   = GL_TEXTURE_2D,
+                    .format = GL_DEPTH_COMPONENT24,
+                    .slot   = GL_DEPTH_ATTACHMENT,
+                    .loadOp = LoadOp::LOAD_OP_DONT_CARE, // never clear depth for skybox pass
                 },
             },
         };
@@ -146,6 +179,7 @@ void Renderer::setup(ResourceManager& manager) {
                 },
             },
         };
+        
         m_passes["atlas_shadow_mapping"] = RenderPass{
             .attachments = {
                 AttachmentDesc{
@@ -173,6 +207,7 @@ void Renderer::setup(ResourceManager& manager) {
                 },
             },
         };
+
         m_passes["deferred_geometry"] = RenderPass{
             .attachments = {
                 AttachmentDesc{
@@ -234,7 +269,7 @@ void Renderer::setup(ResourceManager& manager) {
                 },
             },
         };
-        m_passes["forward_opaque"] = RenderPass{
+        m_passes["forward_rendering"] = RenderPass{
             .attachments = {
                 AttachmentDesc{
                     .name   = "color",
@@ -256,51 +291,8 @@ void Renderer::setup(ResourceManager& manager) {
                 },
             },
         };
-        m_passes["deferred_transparent_back"] = RenderPass{
-            .attachments = {
-                AttachmentDesc{
-                    .name   = "normal",
-                    .target = GL_COLOR,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_RGBA32F,
-                    .slot   = GL_COLOR_ATTACHMENT0,
-                    .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
-                },
-                AttachmentDesc{
-                    .name   = "depth",
-                    .target = GL_DEPTH,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_DEPTH_COMPONENT24,
-                    .slot   = GL_DEPTH_ATTACHMENT,
-                    .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.depthStencil = {1.0f, 0}},
-                },
-            },
-        };
-        m_passes["deferred_transparent_front"] = RenderPass{
-            .attachments = {
-                AttachmentDesc{
-                    .name   = "normal",
-                    .target = GL_COLOR,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_RGBA32F,
-                    .slot   = GL_COLOR_ATTACHMENT0, 
-                    .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.color = {0.5f, 0.5f, 0.5f, 1.0f}},
-                },
-                AttachmentDesc{
-                    .name   = "depth",
-                    .target = GL_DEPTH,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_DEPTH_COMPONENT24,
-                    .slot   = GL_DEPTH_ATTACHMENT,
-                    .loadOp = LoadOp::LOAD_OP_CLEAR,
-                    .value  = {.depthStencil = {1.0f, 0}},
-                },
-            },
-        };
-        m_passes["forward_transparent"] = RenderPass{
+        
+        m_passes["screenspace_dual_refraction"] = RenderPass{
             .attachments = {
                 AttachmentDesc{
                     .name   = "color",
@@ -308,7 +300,7 @@ void Renderer::setup(ResourceManager& manager) {
                     .type   = GL_TEXTURE_2D,
                     .format = GL_RGBA32F,
                     .slot   = GL_COLOR_ATTACHMENT0,
-                    .loadOp = LoadOp::LOAD_OP_DONT_CARE, // never clear color for forward_transparent pass
+                    .loadOp = LoadOp::LOAD_OP_DONT_CARE, // never clear color for screenspace_dual_refraction pass
                 },
                 AttachmentDesc{
                     .name   = "depth",
@@ -316,30 +308,11 @@ void Renderer::setup(ResourceManager& manager) {
                     .type   = GL_TEXTURE_2D,
                     .format = GL_DEPTH_COMPONENT24,
                     .slot   = GL_DEPTH_ATTACHMENT,
-                    .loadOp = LoadOp::LOAD_OP_DONT_CARE, // never clear depth for forward_transparent pass
+                    .loadOp = LoadOp::LOAD_OP_DONT_CARE, // never clear depth for screenspace_dual_refraction pass
                 },
             }
         };
-        m_passes["skybox_mapping"] = RenderPass{
-            .attachments = {
-                AttachmentDesc{
-                    .name   = "color",
-                    .target = GL_COLOR,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_RGBA32F,
-                    .slot   = GL_COLOR_ATTACHMENT0,
-                    .loadOp = LoadOp::LOAD_OP_DONT_CARE,
-                },
-                AttachmentDesc{
-                    .name   = "depth",
-                    .target = GL_DEPTH,
-                    .type   = GL_TEXTURE_2D,
-                    .format = GL_DEPTH_COMPONENT24,
-                    .slot   = GL_DEPTH_ATTACHMENT,
-                    .loadOp = LoadOp::LOAD_OP_DONT_CARE, // never clear depth for skybox pass
-                },
-            },
-        };
+
         m_passes["postprocess_highlight"] = RenderPass{
             .attachments = {
                 AttachmentDesc{
@@ -433,6 +406,15 @@ void Renderer::setup(ResourceManager& manager) {
             .depthTestEnable  = GL_FALSE,
             .depthWriteEnable = GL_FALSE,
         };
+        m_states["skybox_mapping"] = PipelineState{
+            .viewX            = 0,
+            .viewY            = 0,
+            .viewW            = (GLsizei)m_setting.frameWidth,
+            .viewH            = (GLsizei)m_setting.frameHeight,
+            .depthTestEnable  = GL_TRUE,
+            .depthWriteEnable = GL_FALSE,
+            .depthFunc        = GL_LEQUAL,
+        };        
         m_states["ibl_irradiance"] = PipelineState{
             .viewX            = 0,
             .viewY            = 0,
@@ -457,6 +439,7 @@ void Renderer::setup(ResourceManager& manager) {
             .depthTestEnable  = GL_FALSE,
             .depthWriteEnable = GL_FALSE,
         };
+
         m_states["shadow_mapping"] = PipelineState{
             .viewportDynamic  = GL_TRUE, // atlas_shadow_map need dynamic viewport, while cascaded_shadow_map use the given viewport
             .viewX            = 0,
@@ -469,6 +452,7 @@ void Renderer::setup(ResourceManager& manager) {
             .depthWriteEnable = GL_TRUE,
             .depthFunc        = GL_LESS,
         };
+
         m_states["deferred_geometry"] = PipelineState{
             .viewX            = 0,
             .viewY            = 0,
@@ -488,7 +472,7 @@ void Renderer::setup(ResourceManager& manager) {
             .depthTestEnable  = GL_FALSE,
             .depthWriteEnable = GL_FALSE,
         };
-        m_states["forward_opaque"] = PipelineState{
+        m_states["forward_rendering"] = PipelineState{
             .viewX            = 0,
             .viewY            = 0,
             .viewW            = (GLsizei)m_setting.frameWidth,
@@ -499,48 +483,24 @@ void Renderer::setup(ResourceManager& manager) {
             .depthWriteEnable = GL_TRUE,
             .depthFunc        = GL_LESS,
         };
-        m_states["deferred_transparent_back"] = PipelineState{
-            .viewX            = 0,
-            .viewY            = 0,
-            .viewW            = (GLsizei)m_setting.frameWidth / 2,
-            .viewH            = (GLsizei)m_setting.frameHeight / 2,
-            .cullEnable       = GL_TRUE,
-            .cullMode         = GL_FRONT, // cull front face
-            .depthTestEnable  = GL_TRUE,
-            .depthWriteEnable = GL_TRUE,
-            .depthFunc        = GL_LESS,
-        };
-        m_states["deferred_transparent_front"] = PipelineState{
-            .viewX            = 0,
-            .viewY            = 0,
-            .viewW            = (GLsizei)m_setting.frameWidth / 2,
-            .viewH            = (GLsizei)m_setting.frameHeight / 2,
-            .cullEnable       = GL_TRUE,
-            .cullMode         = GL_BACK, // cull back face
-            .depthTestEnable  = GL_TRUE,
-            .depthWriteEnable = GL_TRUE,
-            .depthFunc        = GL_LESS,
-        };
-        m_states["forward_transparent"] = PipelineState{
+
+        m_states["screenspace_reflection"] = PipelineState{
             .viewX            = 0,
             .viewY            = 0,
             .viewW            = (GLsizei)m_setting.frameWidth,
             .viewH            = (GLsizei)m_setting.frameHeight,
-            .cullEnable       = GL_TRUE,
-            .cullMode         = GL_BACK,
-            .depthTestEnable  = GL_TRUE,
-            .depthWriteEnable = GL_TRUE,
-            .depthFunc        = GL_LESS,
-        };
-        m_states["skybox_mapping"] = PipelineState{
-            .viewX            = 0,
-            .viewY            = 0,
-            .viewW            = (GLsizei)m_setting.frameWidth,
-            .viewH            = (GLsizei)m_setting.frameHeight,
-            .depthTestEnable  = GL_TRUE,
+            .depthTestEnable  = GL_FALSE,
             .depthWriteEnable = GL_FALSE,
-            .depthFunc        = GL_LEQUAL,
         };
+        m_states["screenspace_dual_refraction"] = PipelineState{
+            .viewX            = 0,
+            .viewY            = 0,
+            .viewW            = (GLsizei)m_setting.frameWidth,
+            .viewH            = (GLsizei)m_setting.frameHeight,
+            .depthTestEnable  = GL_FALSE,
+            .depthWriteEnable = GL_FALSE,
+        };
+        
         m_states["postprocess_highlight"] = PipelineState{
             .viewX            = 0,
             .viewY            = 0,
@@ -584,17 +544,26 @@ void Renderer::setup(ResourceManager& manager) {
 
     // 3. Compile and link shaders
     {
+        // skybox & ibl
         m_shaders["skybox_equirect2cubemap"]       = manager.loadShader("skybox_equirect2cubemap", "../asset/shader/skybox_equirect2cubemap.vert", "../asset/shader/skybox_equirect2cubemap.frag");
+        m_shaders["skybox_mapping"]            = manager.loadShader("skybox", "../asset/shader/skybox.vert", "../asset/shader/skybox.frag");
         m_shaders["ibl_irradiance"]            = manager.loadShader("ibl_irradiance", "../asset/shader/ibl_irradiance.vert", "../asset/shader/ibl_irradiance.frag");
         m_shaders["ibl_prefiltered"]           = manager.loadShader("ibl_prefiltered", "../asset/shader/ibl_prefiltered.vert", "../asset/shader/ibl_prefiltered.frag");
         m_shaders["ibl_brdf_lut"]              = manager.loadShader("ibl_brdf_lut", "../asset/shader/ibl_brdf_lut.vert", "../asset/shader/ibl_brdf_lut.frag");
+        
+        // shadow mapping
         m_shaders["shadow_mapping"]            = manager.loadShader("shadow_mapping", "../asset/shader/shadow_mapping.vert", "../asset/shader/shadow_mapping.frag");
+        
+        // deferred rendering and forward rendering
         m_shaders["deferred_geometry"]         = manager.loadShader("deferred_geometry", "../asset/shader/deferred_geometry.vert", "../asset/shader/deferred_geometry.frag");
         m_shaders["deferred_shading"]          = manager.loadShader("deferred_shading", "../asset/shader/deferred_shading.vert", "../asset/shader/deferred_shading.frag");
-        m_shaders["forward_opaque"]            = manager.loadShader("forward_opaque", "../asset/shader/forward_opaque.vert", "../asset/shader/forward_opaque.frag");
-        m_shaders["deferred_transparent"]      = manager.loadShader("deferred_transparent", "../asset/shader/deferred_transparent.vert", "../asset/shader/deferred_transparent.frag");
-        m_shaders["forward_transparent"]       = manager.loadShader("forward_transparent", "../asset/shader/forward_transparent.vert", "../asset/shader/forward_transparent.frag");
-        m_shaders["skybox_mapping"]            = manager.loadShader("skybox", "../asset/shader/skybox.vert", "../asset/shader/skybox.frag");
+        m_shaders["forward_rendering"]         = manager.loadShader("forward_rendering", "../asset/shader/forward_rendering.vert", "../asset/shader/forward_rendering.frag");
+       
+        // screen space algorithms
+        m_shaders["screenspace_reflection"]       = manager.loadShader("screenspace_reflection", "../asset/shader/screenspace_reflection.vert", "../asset/shader/screenspace_reflection.frag");
+        m_shaders["screenspace_dual_refraction"]  = manager.loadShader("screenspace_dual_refraction", "../asset/shader/screenspace_dual_refraction.vert", "../asset/shader/screenspace_dual_refraction.frag");
+
+        // postprocessing
         m_shaders["postprocess_highlight"]     = manager.loadShader("postprocess_highlight", "../asset/shader/postprocess_highlight.vert", "../asset/shader/postprocess_highlight.frag");
         m_shaders["postprocess_kawase_down"]   = manager.loadShader("postprocess_kawase_down", "../asset/shader/postprocess_kawase_down.vert", "../asset/shader/postprocess_kawase_down.frag");
         m_shaders["postprocess_kawase_up"]     = manager.loadShader("postprocess_kawase_up", "../asset/shader/postprocess_kawase_up.vert", "../asset/shader/postprocess_kawase_up.frag");    
@@ -611,11 +580,12 @@ void Renderer::setup(ResourceManager& manager) {
         m_frames["atlas_shadow_map"] = std::make_shared<FrameBuffer>(false, m_setting.shadowMapSize, m_setting.shadowMapSize);
         m_frames["cascaded_shadow_map"] = std::make_shared<FrameBuffer>(false, m_setting.shadowMapSize, m_setting.shadowMapSize);
         m_frames["gbuffer"]      = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight);
-        m_frames["gbuffer_b"]    = std::make_shared<FrameBuffer>(false, m_setting.frameWidth / 2, m_setting.frameHeight / 2);
-        m_frames["gbuffer_f"]    = std::make_shared<FrameBuffer>(false, m_setting.frameWidth / 2, m_setting.frameHeight / 2);
+        m_frames["gbuffer_b"]    = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight);
+        m_frames["gbuffer_f"]    = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight);
         m_frames["skybox"]       = std::make_shared<FrameBuffer>(false, m_setting.skyboxSize, m_setting.skyboxSize);
         m_frames["hdr_screen"]   = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight); // hdr_screen is the temporary frame buffer for shading pass, so that later can use it for postprocess(convert hdr into sdr/ldr)
-        m_frames["hdr_screen_ss"]   = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight); 
+        m_frames["hdr_screen_t"] = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight);
+        m_frames["hdr_screen_ss"]= std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight); 
         m_frames["highlight"]    = std::make_shared<FrameBuffer>(false, m_setting.highlightMapSize, m_setting.highlightMapSize);
         m_frames["blur_down"]    = std::make_shared<FrameBuffer>(false, m_setting.bloomMapSize, m_setting.bloomMapSize);
         m_frames["blur_up"]      = std::make_shared<FrameBuffer>(false, m_setting.bloomMapSize, m_setting.bloomMapSize);
@@ -636,7 +606,7 @@ void Renderer::setup(ResourceManager& manager) {
             for (auto attachment : pass.attachments) {
                 auto attachmentName = attachment.name.empty() ? frameName : frameName + "." + attachment.name;
                 std::cout << attachmentName << ", ";
-                if (m_texture2SlotIndexs.count(attachmentName) == 0) { throw std::runtime_error(format("Renderer::setup(): Attachment {} of pass {} not found in frame {}.", attachmentName, passName, frameName)); }
+                // if (m_texture2SlotIndexs.count(attachmentName) == 0) { throw std::runtime_error(format("Renderer::setup(): Attachment {} of pass {} not found in frame {}.", attachmentName, passName, frameName)); }
                 if (m_textures.count(attachmentName) == 0) { 
                     if (attachment.layers > 1) { // 2D ARRAY OR 3D TEXTURE
                         m_textures[attachmentName] = std::make_shared<Texture>(m_frames[frameName]->getWidth(), m_frames[frameName]->getHeight(), attachment.layers, attachment.type, attachment.format, attachment.mipLevels); 
@@ -741,7 +711,8 @@ void Renderer::prepare(const Scene& scene) {
     }
 
     // 2. Precalculate environment map
-    if (cubemap != nullptr || equirect != nullptr) {
+    if (0) {
+    // if (cubemap != nullptr || equirect != nullptr) {
         // 2.1 Precalculate irradiance map
         {
             m_states["ibl_irradiance"].apply();
@@ -959,15 +930,15 @@ void Renderer::render(const Scene& scene) {
         // ! WARNING: Copy depth buffer to screen framebuffer, otherwise depth test will fail for subsequent passes that bind screen framebuffer, since gbuffer's depth buffer is not shared with screen framebuffer.(e.g., skybox will fail if copy is commented) This is a workaround for the fact that OpenGL does not support framebuffer inheritance and subpasses like Vulkan, which allow multiple passes to share the same depth attachment without copying.
         m_frames["hdr_screen"]->copy(*m_frames["gbuffer"], GL_DEPTH_BUFFER_BIT);
     } else {
-        m_states["forward_opaque"].apply();
-        m_shaders["forward_opaque"]->use();
-        m_shaders["forward_opaque"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
-        m_passes["forward_opaque"].begin(m_frames["hdr_screen"]);
+        m_states["forward_rendering"].apply();
+        m_shaders["forward_rendering"]->use();
+        m_shaders["forward_rendering"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
+        m_passes["forward_rendering"].begin(m_frames["hdr_screen"]);
         for (const auto& item : items) {
             m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
             draw(item, {"albedo", "normal", "mrao", "atlas_shadow_map", "cascaded_shadow_map", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut"});
         }
-        m_passes["forward_opaque"].end();
+        m_passes["forward_rendering"].end();
     }
 
     if (m_textures["skybox.cubemap"] != nullptr) {
@@ -981,51 +952,58 @@ void Renderer::render(const Scene& scene) {
         m_passes["skybox_mapping"].end();
     }
 
-    // TODO: screen space reflection
-    if (m_setting.ssr) {}
-
     if (m_setting.dssr) {
         scene.getRenderQueue(items, false); // get transparent objects
 
+        // get transparent front normal and depth
         {
-            m_states["deferred_transparent_back"].apply();
-            m_shaders["deferred_transparent"]->use();
-            m_passes["deferred_transparent_back"].begin(m_frames["gbuffer_b"]);
+            m_states["deferred_geometry"].apply();
+            m_shaders["deferred_geometry"]->use();
+            m_passes["deferred_geometry"].begin(m_frames["gbuffer_f"]);
+            for (const auto& item : items) {            
+                m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
+                draw(item, {"albedo", "normal", "mrao"});
+            }
+            m_passes["deferred_geometry"].end();
+        }
+
+        // get transparent back normal and depth
+        {
+            m_states["deferred_geometry"].cullMode = GL_FRONT; // change cull mode to get back normal and depth
+            m_states["deferred_geometry"].apply();
+            m_shaders["deferred_geometry"]->use();
+            m_passes["deferred_geometry"].begin(m_frames["gbuffer_b"]);
             for (const auto& item : items) {            
                 m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
                 draw(item, {"normal"});
             }
-            m_passes["deferred_transparent_back"].end();
+            m_passes["deferred_geometry"].end();
+            m_states["deferred_geometry"].cullMode = GL_BACK;
         }
 
+        // do basic shading for transparent objects
         {
-            m_states["deferred_transparent_front"].apply();
-            m_shaders["deferred_transparent"]->use();
-            m_passes["deferred_transparent_front"].begin(m_frames["gbuffer_f"]);
-            for (const auto& item : items) {            
-                m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
-                draw(item, {"normal"});
-            }
-            m_passes["deferred_transparent_front"].end();
-        }
-
-        {
-            m_frames["hdr_screen_ss"]->copy(*m_frames["hdr_screen"], GL_COLOR_BUFFER_BIT); // copy hdr_screen.color
-            m_frames["hdr_screen_ss"]->copy(*m_frames["hdr_screen"], GL_DEPTH_BUFFER_BIT);
-        }
-        
-        {
-            m_states["forward_transparent"].apply();
-            m_shaders["forward_transparent"]->use();
-            m_shaders["forward_transparent"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
-            m_passes["forward_transparent"].begin(m_frames["hdr_screen_ss"]);
+            m_states["forward_rendering"].apply();
+            m_shaders["forward_rendering"]->use();
+            m_shaders["forward_rendering"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
+            m_passes["forward_rendering  "].begin(m_frames["hdr_screen_ss"]);
             for (const auto& item : items) {
-                const auto& [xyz1, xyz2] = item.mesh->getBoundingBox();
-                m_shaders["forward_transparent"]->setUniformValue("uCenter", (xyz1 + xyz2) / 2.0f);
                 m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
-                draw(item, {"albedo", "normal", "mrao", "gbuffer_b.normal", "gbuffer_b.depth", "gbuffer_f.normal", "gbuffer_f.depth",  "ibl_diffuse", "ibl_specular", "ibl_brdf_lut", "hdr_screen.color", "hdr_screen.depth", "skybox.cubemap"});
+                draw(item, {"albedo", "normal", "mrao", "atlas_shadow_map", "cascaded_shadow_map", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut"});
             }
-            m_passes["forward_transparent"].end();
+            m_passes["screenspace_dual_refraction"].end();
+        }
+
+        // do dual refraction for transparent objects
+        {    
+            GLsizei count = ResourceManager::getCount("quad");
+            auto& layout  = ResourceManager::getLayout("quad");
+
+            m_states["screenspace_dual_refraction"].apply();
+            m_shaders["screenspace_dual_refraction"]->use();
+            m_passes["screenspace_dual_refraction"].begin(m_frames["hdr_screen_ss"]);
+            draw(layout, {"gbuffer_b.normal", "gbuffer_b.depth", "gbuffer_f.normal", "gbuffer_f.depth", "hdr_screen.color", "hdr_screen.depth", "hdr_screen_t.color", "skybox.cubemap"}, count);
+            m_passes["screenspace_dual_refraction"].end();
         }
         
         {
@@ -1034,8 +1012,17 @@ void Renderer::render(const Scene& scene) {
         }
     }
 
-    // TODO: screen space ambient occlusion
-    if (m_setting.ssao) {}
+    if (m_setting.ssr) {
+        GLsizei count = ResourceManager::getCount("quad");
+        auto& layout  = ResourceManager::getLayout("quad");
+
+        m_states["screenspace_reflection"].apply();
+        m_shaders["screenspace_reflection"]->use();
+        m_shaders["screenspace_reflection"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
+        m_passes["screenspace_reflection"].begin(m_frames["hdr_screen_ss"]);
+        draw(layout, {"hdr_screen.color", "hdr_screen.depth", "skybox.cubemap"}, count);
+        m_passes["screenspace_reflection"].end();
+    }
 
     if (m_setting.bloom || m_setting.lensflare) {
         GLsizei count = ResourceManager::getCount("quad");
@@ -1159,9 +1146,6 @@ void Renderer::render(const Scene& scene) {
         if (!m_setting.bloom) { m_textures["blur_up"]->clear(glm::value_ptr(glm::vec4(0.0f)), GL_RGBA, GL_FLOAT); } // reset the bloom map
         m_textures["lensflare"]->clear(glm::value_ptr(glm::vec4(0.0f)), GL_RGBA, GL_FLOAT); // reset the lensflare map
     }
-
-    // TODO: temporal anti aliasing
-    if (m_setting.taa) {}
 
     {
         GLsizei count = ResourceManager::getCount("quad");
