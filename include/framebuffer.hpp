@@ -63,9 +63,9 @@ class FrameBuffer {
     // @param dstAttachment The destination attachment slot to copy to.
     void copy(const FrameBuffer& other, GLenum mask, GLenum filter = GL_NEAREST, GLenum srcAttachment = GL_COLOR_ATTACHMENT0, GLenum dstAttachment = GL_COLOR_ATTACHMENT0);
     // Read the framebuffer attachment.
+    // @param data The vector to store the read data.
     // @param target The attachment target to read(GL_COLOR/GL_DEPTH/GL_STENCIL/GL_DEPTH_STENCIL).
     // @param slot The attachment slot to read.
-    // @param data The vector to store the read data.
     // @param format The format of the read data(GL_RGB/GL_RED/GL_DEPTH_COMPONENT).
     template <typename T> void read(std::vector<T>& data, GLenum target, GLenum slot, GLenum format);
     // Divides the total framebuffer canvas into a compact, asymmetric grid of sub-tiles.

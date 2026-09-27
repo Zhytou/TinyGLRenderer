@@ -170,6 +170,7 @@ void FrameBuffer::clear(GLenum slot, const glm::vec4& color) {
 }
 
 void FrameBuffer::clear(GLenum target, float depth, int stencil) {
+    // fix: clear the whole texture attachment, even though only one layer or mip level is attached
     if (m_id == 0) {
         if (target == GL_DEPTH) {
             glClearBufferfv(target, 0, &depth);
