@@ -1,11 +1,11 @@
 {
     "camera": {
-        "eye": [3, 5, 10],
+        "eye": [5, 5, 5],
         "target": [0, 0.1, 0],
         "up": [0, 1, 0],
         "fov": 45.0,
         "near": 0.1,
-        "far": 30,
+        "far": 50,
         "width": 800,
         "height": 800,
         "speed": 0.05
@@ -15,7 +15,7 @@
             {
                 "color": [1, 1, 1],
                 "intensity": 2.0,
-                "direction": [-1, -1, 1]
+                "direction": [-0.5, -1, 1]
             },
             {
                 "color": [0.7, 0.3, 0.0],

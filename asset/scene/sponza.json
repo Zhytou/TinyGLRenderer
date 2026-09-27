@@ -1,0 +1,30 @@
+{
+    "camera": {
+        "eye": [-150, 200, 130.0],
+        "target": [0.0, 200.0, 130.0],
+        "up": [0, 1, 0],
+        "fov": 45.0,
+        "near": 0.1,
+        "far": 3000,
+        "width": 800,
+        "height": 800,
+        "speed": 40
+    },
+    "lights": {
+        "directional": [
+            {
+                "color": [1, 1, 1],
+                "intensity": 2.0,
+                "direction": [-1, -1, -1]
+            }
+        ]  
+    },
+    "models": [
+        {
+            "name": "sponza",
+            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/sponza/sponza.obj",
+            "transform": {
+            }
+        }
+    ]
+}
