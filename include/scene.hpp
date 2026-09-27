@@ -23,6 +23,7 @@ class Scene {
     const std::shared_ptr<Texture>& getSkyboxCubeMap() const { return m_skyboxCubemap; }
     const std::shared_ptr<Texture>& getSkyboxEquirect() const { return m_skyboxEquirect; }
     const std::shared_ptr<Camera>& getCamera() const { return m_camera; }
+    std::shared_ptr<Light> getMainLight() const { return m_lights.empty() ? nullptr : m_lights[0]; }
     const std::vector<std::shared_ptr<Light>>& getLights() const { return m_lights; }
     size_t getMaxLightCount() const { return m_lights.size(); }
     size_t getVisibleLightCount() const;

@@ -121,15 +121,6 @@ void Scene::initialize(const std::string& json, ResourceManager& manager) {
         }
     }
 
-    // lights
-    if (doc.HasMember("lights")) {
-        for (int i = 0; i < doc["lights"]["directional"].Size(); i++) {
-            auto& lightDoc = doc["lights"]["directional"][i];
-            m_lights.emplace_back(std::make_shared<DirectionalLight>(getVec3(lightDoc["color"]), lightDoc["intensity"].GetFloat(), getVec3(lightDoc["direction"])));
-            m_lights.back()->setLightSpaceMatrix(m_bounds); // set light space matrix
-        }
-    }
-
     // camera
     if (doc.HasMember("camera")) {
         auto& cameraDoc = doc["camera"];
@@ -153,6 +144,18 @@ void Scene::initialize(const std::string& json, ResourceManager& manager) {
         m_camera->setEye(eye);
         m_camera->setTarget(target);
         m_camera->setUp(up);
+    }
+
+    // lights
+    if (doc.HasMember("lights")) {
+        for (int i = 0; i < doc["lights"]["directional"].Size(); i++) {
+            auto& lightDoc = doc["lights"]["directional"][i];
+            m_lights.emplace_back(std::make_shared<DirectionalLight>(getVec3(lightDoc["color"]), lightDoc["intensity"].GetFloat(), getVec3(lightDoc["direction"])));
+            if (i == 0) { // TODO: support main light setting instead of using first light by default
+                m_lights.back()->setMainLight(true);
+            }
+            m_lights.back()->setLightSpaceMatrix(m_bounds, m_camera); // set light space matrix
+        }
     }
 }
 

@@ -326,7 +326,8 @@ void Editor::drawSideBar(Scene& scene) {
             case SideBarTab::SB_TAB_RENDERER: {
                 if (ImGui::CollapsingHeader("Pipeline Switches", ImGuiTreeNodeFlags_DefaultOpen)) {
                     ImGui::Checkbox("Deferred Rendering", &m_rendererSetting.deferred);
-                    ImGui::Checkbox("Shadow Mapping", &m_rendererSetting.shadow);
+                    ImGui::Checkbox("Atlas Shadow Mapping", &m_rendererSetting.sm);
+                    ImGui::Checkbox("Cascaded Shadow Mapping", &m_rendererSetting.csm);
                     ImGui::Checkbox("Environment IBL", &m_rendererSetting.ibl);
                     ImGui::Checkbox("Bloom Blur", &m_rendererSetting.bloom);
                     ImGui::Checkbox("Lensflare Effect", &m_rendererSetting.lensflare);
@@ -391,7 +392,7 @@ void Editor::drawSideBar(Scene& scene) {
                                 
                                 if (ImGui::DragFloat3("Direction", glm::value_ptr(direction), 0.02f, -1.0f, 1.0f, "%.2f")) {
                                     dirLight->setDirection(direction);
-                                    dirLight->setLightSpaceMatrix(scene.getBoundingBox());
+                                    dirLight->setLightSpaceMatrix(scene.getBoundingBox(), scene.getCamera());
                                 }
                             } 
 
@@ -655,7 +656,7 @@ void Editor::drawHUD(Scene& scene, const DisplayInfo& info) {
         ImGui::Text("Camera Position : (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         ImGui::Text("Camera FrontVec : (%.2f, %.2f, %.2f)", front.x, front.y, front.z);
         ImGui::Text("Deferred Rendering : %s", m_rendererSetting.deferred ? "On" : "Off");
-        ImGui::Text("Shadow Mapping : %s", m_rendererSetting.shadow ? "On" : "Off");
+        ImGui::Text("Shadow Mapping : %s", m_rendererSetting.sm || m_rendererSetting.csm ? "On" : "Off");
         ImGui::Text("Environment IBL : %s", m_rendererSetting.ibl ? "On" : "Off");
         ImGui::Text("Bloom Blur : %s", m_rendererSetting.bloom ? "On" : "Off");
         ImGui::Text("Lensflare : %s", m_rendererSetting.lensflare ? "On" : "Off");
