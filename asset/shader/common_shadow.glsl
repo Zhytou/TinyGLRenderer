@@ -11,6 +11,12 @@ vec3 Pos_toLightSpaceUVD(mat4 lightViewProjMatrix, vec3 worldPos) {
     return lightSpaceUVD;
 }
 
+// Convert perspective depth to linear depth
+float Depth_toLinear(float depth, float near, float far) {
+    float zNDC = depth * 2.0 - 1.0; // [-1, 1]
+    return (2.0 * near * far) / (far + near - zNDC * (far - near));
+}
+
 // Basic shadow mapping
 float SM(sampler2D shadowMap, vec2 uv, float depth, float bias) {
     float refDepth = texture(shadowMap, uv).x; // reference depth value
