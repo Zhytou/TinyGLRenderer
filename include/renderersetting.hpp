@@ -7,7 +7,8 @@ namespace tinyglrenderer {
 struct RendererSetting {
     bool deferred  = false; // deferred rendering enabled or not
     bool ibl       = false; // image based light enabled or not
-    bool shadow    = false; // shadow mapping enabled or not
+    bool sm        = false; // atlas shadow mapping enabled or not
+    bool csm       = false; // cascaded shadow mapping enabled or not
     bool bloom     = false;  // bloom blur enabled or not
     bool lensflare = false;  // lensflare enabled or not
     bool dirtmask  = false;  // dirtmask enabled or not
@@ -28,6 +29,7 @@ struct RendererSetting {
     int highlightMapSize   = 1024;
     int bloomMapSize       = 1024; // size of bloom map using dual kawase blur algorithm
     int bloomMipLevels     = 4;    // number of mip levels for bloom map
+    int cascadedShadowLayers = 4; // number of layers for cascaded shadow map
     int lensflareMapSize   = 512;  // size of lensflare map using gaussian blur algorithm
     int lensflareBlurTimes = 2;    // number of gaussian blur times for lensflare map
 };

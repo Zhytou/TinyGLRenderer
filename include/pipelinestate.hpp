@@ -61,9 +61,7 @@ struct PipelineState {
 };
 
 inline void PipelineState::apply() {
-    if (!viewportDynamic) {
-        glViewport(viewX, viewY, viewW, viewH);
-    }
+    glViewport(viewX, viewY, viewW, viewH);
 
     if (cullEnable) {
         glEnable(GL_CULL_FACE);
