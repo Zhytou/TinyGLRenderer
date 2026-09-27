@@ -8,7 +8,7 @@
         "far": 30,
         "width": 800,
         "height": 800,
-        "speed": 0.05
+        "speed": 1
     },
     "lights": {
         "directional": [
