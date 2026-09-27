@@ -46,7 +46,7 @@ void Camera::move(CameraMovement direction, float deltaTime) {
 
 void Camera::zoom(float offset, float sensitivity) {
     auto direction  = offset > 0.0f ? CameraMovement::FORWARD : CameraMovement::BACKWARD;
-    float deltaTime = fabs(offset) * sensitivity / getSpeed();
+    float deltaTime = fabs(offset) * sensitivity;
     move(direction, deltaTime);
 }
 
