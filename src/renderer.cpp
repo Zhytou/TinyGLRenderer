@@ -27,7 +27,8 @@ void Renderer::setup(ResourceManager& manager) {
             {"ibl_irradiance", "ibl_diffuse"},
             {"ibl_prefiltered", "ibl_specular"},
             {"ibl_brdf_lut", "ibl_brdf_lut"},
-            {"shadow_mapping", "shadow"},
+            {"atlas_shadow_mapping", "atlas_shadow_map"},
+            {"cascaded_shadow_mapping", "cascaded_shadow_map"},
             {"deferred_geometry", "gbuffer"},
             {"deferred_shading", "hdr_screen"},
             {"forward_opaque", "hdr_screen"},
@@ -67,7 +68,8 @@ void Renderer::setup(ResourceManager& manager) {
             {"ibl_specular", 15},
             {"ibl_brdf_lut", 16},
 
-            {"shadow", 19},
+            {"cascaded_shadow_map", 18},
+            {"atlas_shadow_map", 19},
 
             // 20~23: screen space algorithms concerned textures
             {"hdr_screen.color", 20},
@@ -144,7 +146,7 @@ void Renderer::setup(ResourceManager& manager) {
                 },
             },
         };
-        m_passes["shadow_mapping"] = RenderPass{
+        m_passes["atlas_shadow_mapping"] = RenderPass{
             .attachments = {
                 AttachmentDesc{
                     .name   = "", // use frame buffer name as ouput attachment name
@@ -152,6 +154,20 @@ void Renderer::setup(ResourceManager& manager) {
                     .type   = GL_TEXTURE_2D,
                     .format = GL_DEPTH_COMPONENT24,
                     .slot   = GL_DEPTH_ATTACHMENT,
+                    .loadOp = LoadOp::LOAD_OP_CLEAR,
+                    .value  = {.depthStencil = {1.0f, 0.0f}},
+                },
+            },
+        };
+        m_passes["cascaded_shadow_mapping"] = RenderPass{
+            .attachments = {
+                AttachmentDesc{
+                    .name   = "", // use frame buffer name as ouput attachment name
+                    .target = GL_DEPTH,
+                    .type   = GL_TEXTURE_2D_ARRAY,
+                    .format = GL_DEPTH_COMPONENT24,
+                    .slot   = GL_DEPTH_ATTACHMENT,
+                    .layers = 4,
                     .loadOp = LoadOp::LOAD_OP_CLEAR,
                     .value  = {.depthStencil = {1.0f, 0.0f}},
                 },
@@ -442,7 +458,11 @@ void Renderer::setup(ResourceManager& manager) {
             .depthWriteEnable = GL_FALSE,
         };
         m_states["shadow_mapping"] = PipelineState{
-            .viewportDynamic  = GL_TRUE,
+            .viewportDynamic  = GL_TRUE, // atlas_shadow_map need dynamic viewport, while cascaded_shadow_map use the given viewport
+            .viewX            = 0,
+            .viewY            = 0,
+            .viewW            = (GLsizei)m_setting.shadowMapSize,
+            .viewH            = (GLsizei)m_setting.shadowMapSize,
             .cullEnable       = GL_TRUE,
             .cullMode         = GL_BACK,
             .depthTestEnable  = GL_TRUE,
@@ -588,7 +608,8 @@ void Renderer::setup(ResourceManager& manager) {
         m_frames["ibl_diffuse"]  = std::make_shared<FrameBuffer>(false, m_setting.skyboxSize, m_setting.skyboxSize);
         m_frames["ibl_specular"] = std::make_shared<FrameBuffer>(false, m_setting.skyboxSize, m_setting.skyboxSize);
         m_frames["ibl_brdf_lut"] = std::make_shared<FrameBuffer>(false, m_setting.brdfLUTSize, m_setting.brdfLUTSize);
-        m_frames["shadow"]       = std::make_shared<FrameBuffer>(false, m_setting.shadowMapSize, m_setting.shadowMapSize);
+        m_frames["atlas_shadow_map"] = std::make_shared<FrameBuffer>(false, m_setting.shadowMapSize, m_setting.shadowMapSize);
+        m_frames["cascaded_shadow_map"] = std::make_shared<FrameBuffer>(false, m_setting.shadowMapSize, m_setting.shadowMapSize);
         m_frames["gbuffer"]      = std::make_shared<FrameBuffer>(false, m_setting.frameWidth, m_setting.frameHeight);
         m_frames["gbuffer_b"]    = std::make_shared<FrameBuffer>(false, m_setting.frameWidth / 2, m_setting.frameHeight / 2);
         m_frames["gbuffer_f"]    = std::make_shared<FrameBuffer>(false, m_setting.frameWidth / 2, m_setting.frameHeight / 2);
@@ -616,7 +637,13 @@ void Renderer::setup(ResourceManager& manager) {
                 auto attachmentName = attachment.name.empty() ? frameName : frameName + "." + attachment.name;
                 std::cout << attachmentName << ", ";
                 if (m_texture2SlotIndexs.count(attachmentName) == 0) { throw std::runtime_error(format("Renderer::setup(): Attachment {} of pass {} not found in frame {}.", attachmentName, passName, frameName)); }
-                if (m_textures.count(attachmentName) == 0) { m_textures[attachmentName] = std::make_shared<Texture>(m_frames[frameName]->getWidth(), m_frames[frameName]->getHeight(), attachment.type, attachment.format, attachment.mipLevels); }
+                if (m_textures.count(attachmentName) == 0) { 
+                    if (attachment.layers > 1) { // 2D ARRAY OR 3D TEXTURE
+                        m_textures[attachmentName] = std::make_shared<Texture>(m_frames[frameName]->getWidth(), m_frames[frameName]->getHeight(), attachment.layers, attachment.type, attachment.format, attachment.mipLevels); 
+                    } else {
+                        m_textures[attachmentName] = std::make_shared<Texture>(m_frames[frameName]->getWidth(), m_frames[frameName]->getHeight(), attachment.type, attachment.format, attachment.mipLevels); 
+                    } 
+                }
                 m_frames[frameName]->attach(attachment.slot, m_textures[attachmentName]); // attach texture level 0 to frame buffer
             }
             std::cout << "]\n";
@@ -642,20 +669,21 @@ void Renderer::setup(ResourceManager& manager) {
             .wrapS     = GL_CLAMP_TO_EDGE,
             .wrapT     = GL_CLAMP_TO_EDGE,
         });
-        samplers[0x7F000]   = std::make_shared<Sampler>(SamplerDesc{
-            // slot 12~18 -> GL_TEXTURE12~GL_TEXTURE18 = skybox/ibl textures
+        samplers[0x3F000]   = std::make_shared<Sampler>(SamplerDesc{
+            // slot 12~17 -> GL_TEXTURE12~GL_TEXTURE17 = skybox/ibl textures
             .minFilter = GL_LINEAR,
             .magFilter = GL_LINEAR,
             .wrapS     = GL_CLAMP_TO_EDGE,
             .wrapT     = GL_CLAMP_TO_EDGE,
             .wrapR     = GL_CLAMP_TO_EDGE,
         });
-        samplers[0x80000]     = std::make_shared<Sampler>(SamplerDesc{
-            // slot 19 -> GL_TEXTURE19 = shadow texture
+        samplers[0xC0000]     = std::make_shared<Sampler>(SamplerDesc{
+            // slot 18~19 -> GL_TEXTURE18~GL_TEXTURE19 = shadow texture
             .minFilter   = GL_NEAREST,
             .magFilter   = GL_NEAREST,
             .wrapS       = GL_CLAMP_TO_BORDER,
             .wrapT       = GL_CLAMP_TO_BORDER,
+            .wrapR       = GL_CLAMP_TO_EDGE, // for cascaded shadow map
             .borderColor = {1.0f, 1.0f, 1.0f, 1.0f},
         });
         samplers[0xFFF00000] = std::make_shared<Sampler>(SamplerDesc{
@@ -798,7 +826,18 @@ void Renderer::update(const Scene& scene, ResourceManager& manager) {
         }
         m_buffers["model"]->bind(1);
 
-        // 1.3 Light shader storage array
+        // 1.3 Main light uniform block(supplementary information for cascaded shadow mapping)
+        const auto& mainLight = scene.getMainLight();
+        size_t mainLightUBOSize = sizeof(MainLightBlock);
+        if (m_buffers["main_light"] == nullptr) { m_buffers["main_light"] = std::make_shared<UniformBuffer>(mainLightUBOSize); }
+        if (mainLight && mainLight->isVisible()) {
+            m_buffers["main_light"]->upload(0, mainLightUBOSize, &mainLight->getMainLightBlock());
+        } else {
+            m_buffers["main_light"]->clear(0, mainLightUBOSize);
+        }
+        m_buffers["main_light"]->bind(2);
+
+        // 1.4 Light shader storage block array
         std::vector<LightBlock> lightBlocks;
         scene.getLightBlocks(lightBlocks);
         size_t maxLightSSBOSize = std::max(sizeof(LightBlock) * scene.getMaxLightCount(), 256ul);
@@ -814,36 +853,58 @@ void Renderer::update(const Scene& scene, ResourceManager& manager) {
 
     // 2. Render shadow map and update the light shader storage buffer if needed
     // TODO: fix shadow for transparent object
-    if (m_setting.shadow) {
+    {
         std::vector<std::shared_ptr<Light>> lights = scene.getLights();
-        std::vector<int> rects;
-        std::vector<float> remaps;
+        std::shared_ptr<Light> mainLight = scene.getMainLight();
         std::vector<RenderItem> items;
-        
         scene.getRenderQueue(items, true);
-        m_frames["shadow"]->divide(rects, remaps, lights.size());
-        m_states["shadow_mapping"].apply();
-        m_shaders["shadow_mapping"]->use();
-        m_passes["shadow_mapping"].begin(m_frames["shadow"]);
-        // TODO: fix shadow mapping for light visibility change(editor)
-        for (int i = 0; i < lights.size(); i++) {
-            m_states["shadow_mapping"].view(rects[i * 4], rects[i * 4 + 1], rects[i * 4 + 2], rects[i * 4 + 3]);
-            m_shaders["shadow_mapping"]->setUniformValue("uLightViewProjMatrix", lights[i]->getViewProjMatrix());
-            for (const auto& item : items) {
-                m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
-                draw(item, {});
-            }
-            lights[i]->setUVOffsetScale({remaps[i * 4], remaps[i * 4 + 1]}, {remaps[i * 4 + 2], remaps[i * 4 + 3]});
-        }
-        m_passes["shadow_mapping"].end();
 
-        std::vector<LightBlock> lightBlocks;
-        scene.getLightBlocks(lightBlocks);
-        m_buffers["light"]->upload(0, std::max(sizeof(LightBlock) * lightBlocks.size(), 1ul), lightBlocks.data());
-    } else {
-        float depth = 1.0f;
-        m_textures["shadow"]->clear(&depth, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-    }
+        if (m_setting.csm && mainLight) {
+            m_states["shadow_mapping"].apply();
+            m_shaders["shadow_mapping"]->use();
+            m_passes["cascaded_shadow_mapping"].begin(m_frames["cascaded_shadow_map"]);
+            for (int layer = 0; layer < m_setting.cascadedShadowLayers; layer++) {
+                m_frames["cascaded_shadow_map"]->attach(GL_DEPTH_ATTACHMENT, m_textures["cascaded_shadow_map"], 0, layer);                
+                m_shaders["shadow_mapping"]->setUniformValue("uLightViewProjMatrix", mainLight->getViewProjMatrix(layer));
+                for (const auto& item : items) {
+                    m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
+                    draw(item, {});
+                }
+            }
+            m_passes["cascaded_shadow_mapping"].end();
+        } else {
+            float depth = 1.0f;
+            m_textures["cascaded_shadow_map"]->clear(&depth, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+        }
+
+        if (m_setting.sm && lights.size() > 1) {
+            std::vector<int> rects;
+            std::vector<float> remaps;
+            m_frames["atlas_shadow_map"]->divide(rects, remaps, lights.size());
+
+            m_states["shadow_mapping"].apply();
+            m_shaders["shadow_mapping"]->use();
+            m_passes["atlas_shadow_mapping"].begin(m_frames["atlas_shadow_map"]);
+            for (int i = 1; i < lights.size(); i++) {
+                m_states["shadow_mapping"].view(rects[i * 4], rects[i * 4 + 1], rects[i * 4 + 2], rects[i * 4 + 3]);
+                m_shaders["shadow_mapping"]->setUniformValue("uLightViewProjMatrix", lights[i]->getViewProjMatrix());
+                for (const auto& item : items) {
+                    m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
+                    draw(item, {});
+                }
+                lights[i]->setUVOffsetScale({remaps[i * 4], remaps[i * 4 + 1]}, {remaps[i * 4 + 2], remaps[i * 4 + 3]});
+            }
+            m_passes["atlas_shadow_mapping"].end();
+        
+            // Update light shader storage buffer if needed
+            std::vector<LightBlock> lightBlocks;
+            scene.getLightBlocks(lightBlocks);
+            m_buffers["light"]->upload(0, std::max(sizeof(LightBlock) * lightBlocks.size(), 1ul), lightBlocks.data());
+        } else {
+            float depth = 1.0f;
+            m_textures["atlas_shadow_map"]->clear(&depth, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+        }
+    } 
 
     // 3. Load precalculated environment map or default white map depending on m_setting.ibl
     if (m_setting.ibl && m_textures["skybox.cubemap"] != nullptr) {
@@ -891,7 +952,7 @@ void Renderer::render(const Scene& scene) {
             m_shaders["deferred_shading"]->use();
             m_shaders["deferred_shading"]->setUniformValue("uLightCount", (int)scene.getVisibleLightCount());
             m_passes["deferred_shading"].begin(m_frames["hdr_screen"]);
-            draw(layout, {"gbuffer.albedo", "gbuffer.normal", "gbuffer.mrao", "gbuffer.depth", "shadow", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut"}, count);
+            draw(layout, {"gbuffer.albedo", "gbuffer.normal", "gbuffer.mrao", "gbuffer.depth", "atlas_shadow_map", "cascaded_shadow_map", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut"}, count);
             m_passes["deferred_shading"].end();
         }
 
@@ -904,7 +965,7 @@ void Renderer::render(const Scene& scene) {
         m_passes["forward_opaque"].begin(m_frames["hdr_screen"]);
         for (const auto& item : items) {
             m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
-            draw(item, {"albedo", "normal", "mrao", "shadow", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut"});
+            draw(item, {"albedo", "normal", "mrao", "atlas_shadow_map", "cascaded_shadow_map", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut"});
         }
         m_passes["forward_opaque"].end();
     }
@@ -962,7 +1023,7 @@ void Renderer::render(const Scene& scene) {
                 const auto& [xyz1, xyz2] = item.mesh->getBoundingBox();
                 m_shaders["forward_transparent"]->setUniformValue("uCenter", (xyz1 + xyz2) / 2.0f);
                 m_buffers["model"]->bind(1, item.uoffset, sizeof(ModelBlock));
-                draw(item, {"albedo", "normal", "mrao", "gbuffer_b.normal", "gbuffer_b.depth", "gbuffer_f.normal", "gbuffer_f.depth", "shadow", "ibl_diffuse", "ibl_specular", "ibl_brdf_lut", "hdr_screen.color", "hdr_screen.depth", "skybox.cubemap"});
+                draw(item, {"albedo", "normal", "mrao", "gbuffer_b.normal", "gbuffer_b.depth", "gbuffer_f.normal", "gbuffer_f.depth",  "ibl_diffuse", "ibl_specular", "ibl_brdf_lut", "hdr_screen.color", "hdr_screen.depth", "skybox.cubemap"});
             }
             m_passes["forward_transparent"].end();
         }
@@ -1110,7 +1171,7 @@ void Renderer::render(const Scene& scene) {
         m_states["postprocess_final"].view(m_setting.x, m_setting.y, m_setting.width, m_setting.height);
         m_shaders["postprocess_final"]->use();
         m_passes["postprocess_final"].begin(m_frames["screen"]);
-        draw(layout, {"hdr_screen.color", "highlight", "blur_up", "blur_down", "lensflare", "dirtmask", "gbuffer_f.normal", "gbuffer_f.depth", "gbuffer_b.normal", "gbuffer_b.depth"}, count);
+        draw(layout, {"hdr_screen.color", "highlight", "blur_up", "blur_down", "lensflare", "dirtmask"}, count);
         m_passes["postprocess_final"].end();
     }
 }
