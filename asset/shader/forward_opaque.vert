@@ -28,14 +28,16 @@ layout(location = 0) out vec3 oFragPos;
 layout(location = 1) out vec3 oFragNormal;
 layout(location = 2) out vec3 oFragTangent;
 layout(location = 3) out vec2 oFragUV;
-layout(location = 4) out vec3 oFragView;
+layout(location = 4) out vec3 oFragViewDir; // view direction (vertex -> camera)
+layout(location = 5) out vec3 oFragViewPos; // vertex position in view space
 
 void main() {
     oFragPos = (uModelMatrix * vec4(iVertPos, 1.0)).xyz;
     oFragNormal = (uNormalMatrix * vec4(iVertNormal, 0.0)).xyz;
     oFragTangent = (uModelMatrix * vec4(iVertTangent, 0.0)).xyz;
     oFragUV = iVertUV;
-    oFragView = uCameraPos - oFragPos; // vertex -> camera
+    oFragViewDir = uCameraPos - oFragPos;
+    oFragViewPos = (uViewMatrix * uModelMatrix * vec4(iVertPos, 1.0)).xyz;
 
     gl_Position = uProjMatrix * uViewMatrix * uModelMatrix * vec4(iVertPos, 1.0);
 }
