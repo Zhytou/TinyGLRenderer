@@ -85,7 +85,17 @@ void main() {
             float texelSize = 2 * uRadiuses[layer] / max(size.x, size.y); 
             float bias = max(texelSize * slope * 0.5, texelSize * 0.1);
 
-            visibility = CSM(tCascadedShadowMap, cascadedUVD, lightSpaceUVD.z, bias);            
+            visibility = CSM(tCascadedShadowMap, cascadedUVD, lightSpaceUVD.z, bias);   
+
+            if (layer == 0) {
+                dLightColor = vec3(1, 0, 0);
+            } else if (layer == 1) {
+                dLightColor = vec3(0, 1, 0);
+            } else if (layer == 2) {
+                dLightColor = vec3(0, 0, 1);
+            } else {
+                dLightColor = vec3(1, 1, 0);
+            }
         } else {
             vec3 lightSpaceUVD = Pos_toLightSpaceUVD(uLights[i].viewProjMatrix, iFragPos); // (u, v, depth)
             vec2 atlasUV = uLights[i].uvOffsetScale.xy + lightSpaceUVD.xy * uLights[i].uvOffsetScale.zw;
@@ -97,7 +107,7 @@ void main() {
             visibility = SM(tAtlasShadowMap, atlasUV, lightSpaceUVD.z, bias);
         }
 
-        dLightColor += color * visibility;
+        // dLightColor += color * visibility;
     }    
 
     // ----------------------------------------------------------------
