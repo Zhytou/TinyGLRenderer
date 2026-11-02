@@ -155,6 +155,7 @@ const std::shared_ptr<VertexLayout>& ResourceManager::getLayout(const std::strin
     if (!m_layouts.count(name)) { throw std::runtime_error("ResourceManager::getLayout: VertexLayout " + name + " not found in ResourceManager"); }
     return m_layouts.at(name);
 }
+
 const std::unique_ptr<VertexBuffer>& ResourceManager::getBuffer(const std::string& name) {
     if (!m_buffers.count(name)) { throw std::runtime_error("ResourceManager::getBuffer: VertexBuffer " + name + " not found in ResourceManager"); }
     return m_buffers.at(name);

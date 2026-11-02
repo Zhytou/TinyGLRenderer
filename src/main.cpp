@@ -3,11 +3,11 @@
 #include "application.hpp"
 #include "utils.hpp"
 
-std::string scene = "../asset/scene/gun.json";
+std::string scene = "../asset/scene/sponza.json";
 
 int main(int argc, char** argv) {
     try {
-        tinyglrenderer::Application app(1500, 1200, "TinyGLRenderer");
+        tinyglrenderer::Application app(1500, 900, "TinyGLRenderer");
         app.load(scene);
         app.run();
     } catch (const std::exception& e) {
