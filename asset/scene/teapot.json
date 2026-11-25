@@ -5,10 +5,10 @@
         "up": [0, 1, 0],
         "fov": 45.0,
         "near": 1,
-        "far": 30,
+        "far": 20,
         "width": 800,
         "height": 800,
-        "speed": 0.05
+        "speed": 1
     },
     "lights": {
         "directional": [
@@ -24,7 +24,7 @@
     "models": [
         {
             "name": "teapot",
-            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/teapot.obj",
+            "obj_path": "/home/zhytou/tinyglrenderer/asset/mesh/teapot/teapot.obj",
             "transform": {
                 "rotate": [90, 0, -30]
             }

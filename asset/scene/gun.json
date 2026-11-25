@@ -5,15 +5,15 @@
         "up": [0, 1, 0],
         "fov": 45.0,
         "near": 0.1,
-        "far": 20,
+        "far": 10,
         "width": 800,
         "height": 600,
-        "speed": 0.05
+        "speed": 2
     },
     "lights": {
         "directional": [
             {
-                "intensity": 2.0,
+                "intensity": 1.0,
                 "color": [1, 1, 1],
                 "direction": [-1, -1, -1]
             }
@@ -31,8 +31,8 @@
     ],
     "skybox":{
         "equirect": {
-            "base_dir": "/home/zhytou/tinyglrenderer/asset/skybox/equirect/barcelona",
-            "name": "barcelona.hdr"
+            "base_dir": "/home/zhytou/tinyglrenderer/asset/skybox/equirect/street",
+            "name": "street.hdr"
         }
     }
 }
