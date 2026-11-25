@@ -36,7 +36,7 @@ void main() {
     vec3 worldPos = Pos_toWorld(iFragUV, depth, uViewMatrix, uProjMatrix);
     vec3 direction = GGXSample(iFragUV, N, roughness);
 
-    vec4 hit = RayMarch(worldPos, direction, uInvViewMatrix, uInvProjMatrix, tDepthMap, near, far, camera, face);
+    vec4 hit = RayMarch(worldPos, direction, uInvViewMatrix, uInvProjMatrix, tDepthMap, uNear, uFar, 0, 0);
 
     if (hit.w == 0.0) {
         oFragColor = vec4(0.0);
