@@ -13,7 +13,7 @@ namespace tinyglrenderer {
 namespace fs = std::filesystem;
 
 Shader::Shader(const fs::path& vertShaderPath, const fs::path& fragShaderPath) {
-    std::cout << "Compiling GLSL shader [" << vertShaderPath << "] and [" << fragShaderPath << "]\n";
+    // std::cout << "Compiling GLSL shader [" << vertShaderPath << "] and [" << fragShaderPath << "]\n";
 
     // compile and link shaders
     m_filepath = { fs::canonical(vertShaderPath).string(), fs::canonical(fragShaderPath).string() };
@@ -57,7 +57,7 @@ std::string Shader::precompile(const fs::path& shaderPath) {
             if (end != std::string::npos) {
                 fs::path includePath = baseDir / line.substr(start, end - start);
                 buffer << precompile(includePath);
-                std::cout << "Including GLSL script[" << includePath << "]\n";
+                // std::cout << "Including GLSL script[" << includePath << "]\n";
             }
         } else {
             buffer << line << "\n";

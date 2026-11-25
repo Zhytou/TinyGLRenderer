@@ -602,10 +602,10 @@ void Renderer::setup(ResourceManager& manager) {
         for (auto itr = range.first; itr != range.second; ++itr) {
             auto frameName = itr->second;
             if (frameName == "screen") { continue; }
-            std::cout << "Creating attachments [";
+            // std::cout << "Creating attachments [";
             for (auto attachment : pass.attachments) {
                 auto attachmentName = attachment.name.empty() ? frameName : frameName + "." + attachment.name;
-                std::cout << attachmentName << ", ";
+                // std::cout << attachmentName << ", ";
                 // if (m_texture2SlotIndexs.count(attachmentName) == 0) { throw std::runtime_error(format("Renderer::setup(): Attachment {} of pass {} not found in frame {}.", attachmentName, passName, frameName)); }
                 if (m_textures.count(attachmentName) == 0) { 
                     if (attachment.layers > 1) { // 2D ARRAY OR 3D TEXTURE
@@ -616,7 +616,7 @@ void Renderer::setup(ResourceManager& manager) {
                 }
                 m_frames[frameName]->attach(attachment.slot, m_textures[attachmentName]); // attach texture level 0 to frame buffer
             }
-            std::cout << "]\n";
+            // std::cout << "]\n";
             m_frames[frameName]->finalize();
             m_frames[frameName]->validate();
         }
@@ -711,8 +711,8 @@ void Renderer::prepare(const Scene& scene) {
     }
 
     // 2. Precalculate environment map
-    if (0) {
-    // if (cubemap != nullptr || equirect != nullptr) {
+    // if (0) {
+    if (cubemap != nullptr || equirect != nullptr) {
         // 2.1 Precalculate irradiance map
         {
             m_states["ibl_irradiance"].apply();

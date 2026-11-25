@@ -22,21 +22,23 @@ Application::Application(int width, int height, const std::string& title)
     if (width < 800 || height < 600) { throw std::runtime_error("Application::Application: Window size must be at least 800x600"); }
 
     // initialize glfw and glad
-    std::cout << "Initializing GLFW & GLAD for [" << title << "]\n";
     setup(width, height, title);
     resize(width, height);
 
     // initialize static resources
-    std::cout << "Initializing Static Resources\n";
     m_manager.initialize();
 
     // initialize editor
-    std::cout << "Running ImGui Editor [" << ImGui::GetVersion() << "]\n";
     m_editor.setup();
 
     // initialize renderer
-    std::cout << "Running OpenGL Renderer [" << glGetString(GL_RENDERER) << "]\n";
     m_renderer.setup(m_manager);
+
+    // print info
+    std::cout << "ImGui Version: " << ImGui::GetVersion() << '\n'
+              << "OpenGL Vendor: " << glGetString(GL_VENDOR) << '\n'          
+              << "OpenGL Renderer: " << glGetString(GL_RENDERER) << '\n'
+              << "OpenGL Version: " << glGetString(GL_VERSION) << '\n';
 }
 
 Application::~Application() {
@@ -54,20 +56,24 @@ Application::~Application() {
 }
 
 void Application::setup(int width, int height, const std::string& title) {
+    // global env setup
+    setenv("GALLIUM_DRIVER", "d3d12", 1);
+    setenv("MESA_LOADER_DRIVER_OVERRIDE", "d3d12", 1);
+    setenv("MESA_D3D12_DEFAULT_ADAPTER_NAME", "RTX", 1);
+
     // glfw initialization
     if (!glfwInit()) { throw std::runtime_error("Application::setup: Failed to initialize GLFW library"); }
-    // set opengl version
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // core profile
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // opengl major version 4
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5); // opengl minor version 5
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // no window decoration
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
     glfwWindowHint(GLFW_DEPTH_BITS, 24);        // allocate at least 24 depth bits for glfw swapbuffers, otherwise glenbale(GL_DEPTH_TEST) may not work
     glfwWindowHint(GLFW_STENCIL_BITS, 8);
 
     // glfw window creation
     m_window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
-        if (!m_window) { throw std::runtime_error("Application::setup: Failed to create OpenGL context"); }
+    if (!m_window) { throw std::runtime_error("Application::setup: Failed to create OpenGL context"); }
 
     // glfw context settings(make sure it is all set before glad initialization)
     glfwMakeContextCurrent(m_window);

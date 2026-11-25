@@ -222,17 +222,13 @@ std::shared_ptr<Model> ResourceManager::loadModel(const std::string& modelName, 
     }
 
     // 2. Create mesh from tinyobj shapes
-    std::cout << "Loading mesh [" << objPath << "]\n";
     std::shared_ptr<Mesh> mesh = loadMesh(objPath.stem().string(), objPath, attributes, shapes, materials.size());
 
     // 3. Convert tinyobj material into self-defined material
-    std::cout << "Loading materials [";
     std::vector<std::shared_ptr<Material>> nmaterials;
     for (auto& material : materials) {
-        std::cout << material.name << ", ";
         nmaterials.push_back(loadMaterial(material.name, mtlDir, material));
     }
-    std::cout << "]\n";
 
     return make_shared<Model>(modelName, mesh, nmaterials);
 }
@@ -277,7 +273,7 @@ std::shared_ptr<Texture> ResourceManager::load2DTexture(const std::string& texNa
     
     std::shared_ptr<Texture> texture;
     if (fs::is_regular_file(texPath)) {
-        std::cout << "Loading texture(GL_TEXTURE_2D) from file [" << texPath << "]\n";
+        // std::cout << "Loading texture(GL_TEXTURE_2D) from file [" << texPath << "]\n";
         std::shared_ptr<Image> image = loadImage(texName, texPath, desiredChannels, verticalFlip);
         texture = std::make_shared<Texture>(image->getWidth(), image->getHeight(), GL_TEXTURE_2D, internalFormat, mipLevels);
         texture->upload(image);
@@ -287,7 +283,7 @@ std::shared_ptr<Texture> ResourceManager::load2DTexture(const std::string& texNa
             return m_textures[texAlias].lock();
         }
 
-        std::cout << "Loading texture(GL_TEXTURE_2D) from value [" << defaultValue << "]\n";
+        // std::cout << "Loading texture(GL_TEXTURE_2D) from value [" << defaultValue << "]\n";
         texture = std::make_shared<Texture>(m_textureDefaultWidth, m_textureDefaultHeight, GL_TEXTURE_2D, internalFormat, mipLevels);
         texture->clear(glm::value_ptr(defaultValue), GL_RGBA, GL_FLOAT); // GL_RGBA and GL_FLOAT indicate the format of defaultValue is RGBA float
         m_textures[texAlias] = texture;
@@ -315,13 +311,10 @@ std::shared_ptr<Texture> ResourceManager::load2DTexture(const std::string& texNa
     std::shared_ptr<Texture> texture;
     if (is_all_regular_file(texPaths)) {
         std::vector<std::shared_ptr<Image>> images;
-        std::cout << "Loading texture(GL_TEXTURE_2D) from file [";
         for (int i = 0; i < texPaths.size(); i++) {
             auto& texPath = texPaths[i];
-            std::cout << texPaths[i] << ", ";
             images.push_back(loadImage(std::format("{}_{}", texName, i), texPath, 1, true));
         }
-        std::cout << "]\n";
         auto mimage = Image::merge(images, 4);
         texture = std::make_shared<Texture>(mimage->getWidth(), mimage->getHeight(), GL_TEXTURE_2D, internalFormat, mipLevels);
         texture->upload(mimage);
@@ -331,7 +324,7 @@ std::shared_ptr<Texture> ResourceManager::load2DTexture(const std::string& texNa
             return m_textures[texAlias].lock();
         }
         
-        std::cout << "Loading texture(GL_TEXTURE_2D) from value [" << defaultValue << "]\n";
+        // std::cout << "Loading texture(GL_TEXTURE_2D) from value [" << defaultValue << "]\n";
         texture = std::make_shared<Texture>(m_textureDefaultWidth, m_textureDefaultHeight, GL_TEXTURE_2D, internalFormat, mipLevels);
         texture->clear(glm::value_ptr(defaultValue), GL_RGBA, GL_FLOAT); // GL_RGBA and GL_FLOAT indicate the format of defaultValue is RGBA float
         m_textures[texAlias] = texture;
@@ -350,22 +343,19 @@ std::shared_ptr<Texture> ResourceManager::loadCubeTexture(const std::string& tex
     std::vector<std::shared_ptr<Image>> images;
     GLsizei width = 1, height = 1;
     if (is_all_regular_file(texPaths)) {
-        std::cout << "Loading texture(GL_TEXTURE_CUBE_MAP) from file [";
         for (int i = 0; i < texPaths.size(); i++) {
             auto& texPath = texPaths[i];
-            std::cout << texPath << ", ";
             images.push_back(loadImage(std::format("{}_{}", texName, i), texPath, desiredChannels, verticalFlip));
             width  = images.back()->getWidth();
             height = images.back()->getHeight();
         }
-        std::cout << "]\n";
     } else {
         if (m_textures.count(texAlias) && !m_textures[texAlias].expired()) {
             m_textures[texName] = m_textures[texAlias];
             return m_textures[texAlias].lock();
         }
 
-        std::cout << "Loading texture(GL_TEXTURE_CUBE_MAP) from value [" << defaultValue << "]\n";
+        // std::cout << "Loading texture(GL_TEXTURE_CUBE_MAP) from value [" << defaultValue << "]\n";
     }
 
     std::shared_ptr<Texture> texture = std::make_shared<Texture>(width, height, GL_TEXTURE_CUBE_MAP, internalFormat, mipLevels);
